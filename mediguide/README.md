@@ -1,16 +1,22 @@
-# React + Vite
+# MediGuide: AI-Powered Smart Healthcare Assistant
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-Currently, two official plugins are available:
+## License
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This ensures that any modifications, including those used to run web services, must be shared with the community to benefit healthcare accessibility worldwide.
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+MediGuide: AI-Powered Smart Healthcare Assistant
+Copyright (C) 2025 [Michael Simiyu]
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+This software uses the following open source packages:
+[List major dependencies and their licenses]
+
+MEDICAL DISCLAIMER:
+This software is for informational purposes only for non-critical medical conditions and is not a substitute
+for professional medical advice, diagnosis, or treatment. Always seek the
+advice of your physician or other qualified health provider with any
+questions you may have regarding a medical condition.
