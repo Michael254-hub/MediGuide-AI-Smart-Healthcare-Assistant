@@ -1,6 +1,6 @@
 # MediGuide: AI-Powered Smart Healthcare Assistant
 
-The project is built sequentially following this [roadmap](Roadmap.md) so as to put all required factors into consideration.
+The project is built sequentially following this [roadmap](Roadmap.md) so as to put all required factors into consideration. I also have special considerations on the [recommendations](Recommendations.md) page in the case where you are modifying this project for advanced use.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
