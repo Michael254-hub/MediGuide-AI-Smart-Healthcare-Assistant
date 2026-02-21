@@ -17,3 +17,19 @@ mongoose.connect(process.env.MONGO_URI)
 app.listen(3000, () =>{
     console.log("Server running on port 3000")
 })
+
+app.post("/whatsapp", async (req, res) => {
+  const incomingMsg = req.body.Body;
+  const from = req.body.From;
+
+  console.log("Message from:", from);
+  console.log("Message:", incomingMsg);
+
+  const twiml = new MessagingResponse();
+
+  // Simple test reply
+  twiml.message("Welcome to MediGuide. Please describe your symptoms.");
+
+  res.writeHead(200, { "Content-Type": "text/xml" });
+  res.end(twiml.toString());
+});
