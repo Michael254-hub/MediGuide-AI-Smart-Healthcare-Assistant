@@ -1,0 +1,10 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Cache
+**/.cache/
+
+# Environment variables
+.env
+.env.local
