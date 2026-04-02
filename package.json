@@ -1,0 +1,24 @@
+{
+  "name": "mediguide-ai-healthcare-assistant",
+  "version": "1.0.0",
+  "description": "MediGuide is a MERN stack web-based healthcare assistance platform that functions as a Decision Support System (DSS) to assist users with symptom guidance.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "run-p server client",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/my-c0de-hub/mediguide-ai-healthcare-assistant.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/my-c0de-hub/mediguide-ai-healthcare-assistant/issues"
+  },
+  "homepage": "https://github.com/my-c0de-hub/mediguide-ai-healthcare-assistant#readme"
+}

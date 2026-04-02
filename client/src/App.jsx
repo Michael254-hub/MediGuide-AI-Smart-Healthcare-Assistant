@@ -29,14 +29,14 @@ function App() {
       <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-med-primary to-med-accent flex items-center justify-center text-white font-bold text-xl shadow-md">M</div>
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-med-primary to-med-accent flex items-center justify-center text-white font-bold text-xl shadow-md">M</div>
             <span className="font-extrabold text-2xl text-med-dark tracking-tight">MediGuide</span>
           </div>
           <Navbar />
         </div>
       </header>
       
-      <main className="flex-grow flex flex-col">
+      <main className="grow flex flex-col">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
