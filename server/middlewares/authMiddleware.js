@@ -11,7 +11,7 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       req.user = await userRepository.findById(decoded.id);
 

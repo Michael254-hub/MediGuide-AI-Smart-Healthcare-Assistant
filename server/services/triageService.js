@@ -11,8 +11,12 @@ class TriageService {
       severity: submissionData.severity
     });
 
-    // 2. Classify the risk
-    const assessment = classifyRisk(submissionData.symptoms);
+    // 2. Classify the risk using symptoms text, duration, and severity
+    const assessment = classifyRisk(
+      submissionData.symptoms,
+      submissionData.duration,
+      submissionData.severity
+    );
 
     // 3. Create triage log
     const triageLog = await symptomRepository.createTriageLog({
