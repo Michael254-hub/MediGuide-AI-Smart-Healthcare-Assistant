@@ -15,6 +15,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  phone: {
+    type: String,
+    default: null,
+    sparse: true,
+  },
   role: {
     type: String,
     enum: ['patient', 'admin'],

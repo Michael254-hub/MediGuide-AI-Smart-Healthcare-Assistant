@@ -3,7 +3,7 @@ const generateToken = require('../utils/generateToken');
 
 class UserService {
   async registerUser(userData) {
-    const { name, email, password } = userData;
+    const { name, email, password, phone } = userData;
 
     const userExists = await userRepository.findByEmail(email);
     if (userExists) {
@@ -11,12 +11,13 @@ class UserService {
     }
 
     // role is always 'patient' for self-registration; admins are created via seeding/admin tools
-    const user = await userRepository.create({ name, email, password, role: 'patient' });
+    const user = await userRepository.create({ name, email, password, phone: phone || null, role: 'patient' });
     
     return {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       token: generateToken(user._id)
     };
