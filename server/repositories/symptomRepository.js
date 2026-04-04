@@ -1,4 +1,4 @@
-const { supabase } = require('../config/db');
+const { supabase } = require('../config/supabaseClient');
 
 class SymptomRepository {
   async createSubmission(submissionData) {

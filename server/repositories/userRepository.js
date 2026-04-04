@@ -1,4 +1,4 @@
-const { supabase } = require('../config/db');
+const { supabase } = require('../config/supabaseClient');
 const bcrypt = require('bcrypt');
 
 class UserRepository {
