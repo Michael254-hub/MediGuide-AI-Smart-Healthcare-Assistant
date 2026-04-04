@@ -26,7 +26,7 @@ const loginUser = async (req, res, next) => {
 
 const getUserProfile = async (req, res, next) => {
   try {
-    const user = await userService.getUserProfile(req.user._id);
+    const user = await userService.getUserProfile(req.user.id);
     res.status(200).json({ success: true, user });
   } catch (error) {
     if (error.message === 'User not found') {

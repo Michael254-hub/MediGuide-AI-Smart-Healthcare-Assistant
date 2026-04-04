@@ -1,47 +1,24 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt'); // from package.json
+/**
+ * DEPRECATED: This file is no longer used.
+ * 
+ * The project has been migrated from MongoDB to Supabase (PostgreSQL).
+ * User data is now managed directly via Supabase queries in repositories/userRepository.js
+ * 
+ * See config/schema.sql for the PostgreSQL schema definition.
+ */
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  phone: {
-    type: String,
-    default: null,
-    sparse: true,
-  },
-  role: {
-    type: String,
-    enum: ['patient', 'admin'],
-    default: 'patient',
+// This file is kept for reference only
+const userSchema = {
+  fields: {
+    id: { type: 'UUID', primary: true, default: 'gen_random_uuid()' },
+    name: { type: 'VARCHAR(255)', required: true },
+    email: { type: 'VARCHAR(255)', unique: true, required: true },
+    password: { type: 'VARCHAR(255)', required: true },
+    phone: { type: 'VARCHAR(20)', nullable: true },
+    role: { type: 'VARCHAR(50)', enum: ['patient', 'admin'], default: 'patient' },
+    created_at: { type: 'TIMESTAMP', default: 'NOW()' },
+    updated_at: { type: 'TIMESTAMP', default: 'NOW()' }
   }
-}, {
-  timestamps: true // adds createdAt and updatedAt
-});
-
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    next();
-  }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-// Method to compare passwords
-userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+module.exports = null; // No longer exported

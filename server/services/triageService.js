@@ -20,11 +20,11 @@ class TriageService {
 
     // 3. Create triage log
     const triageLog = await symptomRepository.createTriageLog({
-      submissionId: submission._id,
-      detectedSymptoms: submissionData.symptoms.split(',').map(s => s.trim()), // Basic extraction
-      riskLevel: assessment.level,
+      submission_id: submission.id,
+      detected_symptoms: submissionData.symptoms.split(',').map(s => s.trim()), // Basic extraction
+      risk_level: assessment.level,
       recommendation: assessment.recommendation,
-      flaggedEmergency: assessment.flaggedEmergency
+      flagged_emergency: assessment.flaggedEmergency
     });
 
     return {
@@ -38,7 +38,7 @@ class TriageService {
     const history = [];
 
     for (const sub of submissions) {
-      const log = await symptomRepository.getTriageLogBySubmissionId(sub._id);
+      const log = await symptomRepository.getTriageLogBySubmissionId(sub.id);
       if (log) {
         history.push({
           submission: sub,
