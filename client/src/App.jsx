@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SubmitSymptoms from "./pages/SubmitSymptoms";
 import AdminDashboard from "./pages/AdminDashboard";
+import ClinicalDashboard from "./pages/ClinicalDashboard";
 import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
@@ -52,6 +53,14 @@ function App() {
             element={
               <PrivateRoute requireAdmin={true}>
                 <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/clinical"
+            element={
+              <PrivateRoute>
+                <ClinicalDashboard />
               </PrivateRoute>
             }
           />

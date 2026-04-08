@@ -8,6 +8,7 @@ const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const symptomRoutes = require('./routes/symptomRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const clinicalRoutes = require('./routes/clinicalRoutes');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api', limiter);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/symptoms', symptomRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/clinical', clinicalRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {
