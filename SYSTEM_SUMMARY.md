@@ -207,18 +207,6 @@ User: "What's the cardiovascular risk?"
 
 ---
 
-## 🧠 AI Integration Details
-
-### Anthropic Claude 3.5 Sonnet
-
-**Model:** `claude-3-5-sonnet-20241022`
-**Capabilities:**
-
-- 200K context window (vs 100K for Sonnet 3)
-- Cost-effective ($3/$15 per 1M tokens)
-- Excellent clinical reasoning
-- Streaming support for real-time UI
-
 **Integrated Features:**
 
 1. **Conversation History**

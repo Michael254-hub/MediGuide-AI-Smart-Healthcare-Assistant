@@ -2,7 +2,15 @@ const triageService = require('../services/triageService');
 
 const submitSymptoms = async (req, res, next) => {
   try {
-    const result = await triageService.processSubmission(req.user.id, req.body);
+    // Prepare submission data with optional files
+    const submissionData = {
+      symptoms: req.body.symptoms,
+      duration: req.body.duration,
+      severity: req.body.severity,
+      images: req.files || [] // Array of uploaded files from multer
+    };
+    
+    const result = await triageService.processSubmission(req.user.id, submissionData);
     res.status(201).json({ success: true, data: result });
   } catch (error) {
     next(error);

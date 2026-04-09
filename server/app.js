@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 
@@ -12,10 +13,27 @@ const clinicalRoutes = require('./routes/clinicalRoutes');
 
 const app = express();
 
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+app.locals.upload = upload;
+
 // Security and utility middlewares
 app.use(helmet());
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // Rate limiting

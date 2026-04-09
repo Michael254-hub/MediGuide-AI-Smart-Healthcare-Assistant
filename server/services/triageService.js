@@ -5,7 +5,7 @@ class TriageService {
   async processSubmission(userId, submissionData) {
     // 1. Save the symptom submission
     const submission = await symptomRepository.createSubmission({
-      userId,
+      user_id: userId,
       symptoms: submissionData.symptoms,
       duration: submissionData.duration,
       severity: submissionData.severity
