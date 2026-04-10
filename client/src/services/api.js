@@ -29,12 +29,63 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const authHeader = error.config?.headers?.Authorization;
+    if (error.response && error.response.status === 401 && authHeader) {
       useAuthStore.getState().logout();
       window.location.href = '/login'; // Optional: redirect to login
     }
     return Promise.reject(error);
   }
 );
+
+// Auth API methods
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  confirmVerification: (data, verificationToken) =>
+    api.post('/auth/verification/confirm', data, {
+      headers: {
+        'X-Verification-Token': verificationToken,
+      },
+    }),
+  resendVerification: (verificationToken) =>
+    api.post(
+      '/auth/verification/resend',
+      {},
+      {
+        headers: {
+          'X-Verification-Token': verificationToken,
+        },
+      }
+    ),
+  requestPasswordReset: (data) => api.post('/auth/request-password-reset', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
+  getProfile: () => api.get('/auth/profile'),
+};
+
+// Symptom API methods
+export const symptomAPI = {
+  submitSymptoms: (data) => api.post('/symptoms/submit', data),
+  getSymptomHistory: () => api.get('/symptoms/history'),
+  getSingleSymptom: (id) => api.get(`/symptoms/${id}`),
+};
+
+// Clinical API methods
+export const clinicalAPI = {
+  getRiskAssessment: () => api.get('/clinical/risk-assessment'),
+  getTriageHistory: () => api.get('/clinical/triage-history'),
+  addClinicalNotes: (data) => api.post('/clinical/notes', data),
+};
+
+// Admin API methods
+export const adminAPI = {
+  getAllUsers: () => api.get('/admin/users'),
+  getUserClinicalData: (userId) => api.get(`/admin/users/${userId}/clinical-data`),
+  getSymptomSubmissions: (status, startDate, endDate) => 
+    api.get('/admin/symptom-submissions', { params: { status, startDate, endDate } }),
+  updateTriageStatus: (submissionId, data) => api.patch(`/admin/triage/${submissionId}`, data),
+  generateReport: (reportType, dateRange) => 
+    api.post('/admin/reports', { reportType, dateRange }),
+};
 
 export default api;

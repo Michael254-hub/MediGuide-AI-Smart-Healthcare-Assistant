@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/userRepository');
+const { verifyVerificationSessionToken } = require('../utils/verificationSession');
 
 const protect = async (req, res, next) => {
   let token;
@@ -37,4 +38,29 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+const protectVerificationSession = async (req, res, next) => {
+  const token = req.headers['x-verification-token'];
+
+  if (!token) {
+    return res
+      .status(401)
+      .json({ success: false, message: 'Verification session token is required' });
+  }
+
+  try {
+    const decoded = verifyVerificationSessionToken(token);
+    req.verificationSession = {
+      userId: decoded.sub,
+      contactType: decoded.contactType,
+    };
+    next();
+  } catch (error) {
+    res.status(error.statusCode || 401).json({
+      success: false,
+      message: error.message,
+      code: error.code,
+    });
+  }
+};
+
+module.exports = { protect, admin, protectVerificationSession };

@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const symptomRoutes = require('./routes/symptomRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const clinicalRoutes = require('./routes/clinicalRoutes');
+const env = require('./config/env');
 
 const app = express();
 
@@ -31,7 +32,7 @@ app.locals.upload = upload;
 
 // Security and utility middlewares
 app.use(helmet());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));

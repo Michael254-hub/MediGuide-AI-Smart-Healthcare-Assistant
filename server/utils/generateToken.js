@@ -1,11 +1,8 @@
 const jwt = require('jsonwebtoken');
-
-if (!process.env.JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET environment variable is not set. Set it before starting the server.');
-}
+const env = require('../config/env');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, env.jwtSecret, {
     expiresIn: '30d',
   });
 };

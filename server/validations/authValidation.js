@@ -1,24 +1,56 @@
 const { z } = require('zod');
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^\+?[1-9]\d{6,14}$/;
+
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z
-    .union([
-      z.string().regex(/^\+?[1-9]\d{6,14}$/, 'Please enter a valid phone number (e.g. +254712345678)'),
-      z.literal(''),
-    ])
-    .optional(),
+  emailOrPhone: z.string()
+    .min(1, 'Email or phone is required')
+    .refine(
+      (val) => emailRegex.test(val) || phoneRegex.test(val),
+      'Please enter a valid email address or phone number'
+    ),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   // role is intentionally excluded — all self-registered users are patients
 });
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  emailOrPhone: z.string().min(1, 'Email or phone is required'),
   password: z.string().min(1, 'Password is required')
+});
+
+const verifyEmailPhoneSchema = z.object({
+  verificationCode: z.string().length(6, 'Verification code must be 6 digits')
+});
+
+const resendVerificationSchema = z.object({});
+
+const requestPasswordResetSchema = z.object({
+  emailOrPhone: z.string()
+    .min(1, 'Email or phone is required')
+    .refine(
+      (val) => emailRegex.test(val) || phoneRegex.test(val),
+      'Please enter a valid email address or phone number'
+    )
+});
+
+const resetPasswordSchema = z.object({
+  emailOrPhone: z.string()
+    .min(1, 'Email or phone is required')
+    .refine(
+      (val) => emailRegex.test(val) || phoneRegex.test(val),
+      'Please enter a valid email address or phone number'
+    ),
+  resetToken: z.string().min(1, 'Reset token is required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters')
 });
 
 module.exports = {
   registerSchema,
-  loginSchema
+  loginSchema,
+  verifyEmailPhoneSchema,
+  resendVerificationSchema,
+  requestPasswordResetSchema,
+  resetPasswordSchema
 };

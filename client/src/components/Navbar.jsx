@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { isUserVerified } from "../utils/auth";
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const verified = isUserVerified(user);
 
   const handleLogout = () => {
     logout();
@@ -14,25 +16,36 @@ const Navbar = () => {
     <nav className="flex items-center gap-6">
       {isAuthenticated ? (
         <>
-          <Link
-            to="/dashboard"
-            className="text-med-text hover:text-med-primary transition-colors font-medium"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/clinical"
-            className="text-med-text hover:text-med-primary transition-colors font-medium flex items-center gap-1"
-          >
-            <span>🧠</span> Clinical AI
-          </Link>
-          {user?.role === "admin" && (
+          {!verified ? (
             <Link
-              to="/admin"
+              to="/verify-account"
               className="text-med-text hover:text-med-primary transition-colors font-medium"
             >
-              Admin Panel
+              Verify Account
             </Link>
+          ) : (
+            <>
+              <Link
+                to="/dashboard"
+                className="text-med-text hover:text-med-primary transition-colors font-medium"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/clinical"
+                className="text-med-text hover:text-med-primary transition-colors font-medium flex items-center gap-1"
+              >
+                <span>🧠</span> Clinical AI
+              </Link>
+              {user?.role === "admin" && (
+                <Link
+                  to="/admin"
+                  className="text-med-text hover:text-med-primary transition-colors font-medium"
+                >
+                  Admin Panel
+                </Link>
+              )}
+            </>
           )}
           <div className="flex items-center gap-4 border-l pl-6 border-slate-200">
             <span className="text-sm font-medium text-slate-500">
