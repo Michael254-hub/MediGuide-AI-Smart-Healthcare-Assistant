@@ -76,11 +76,7 @@ const Register = () => {
     clearError();
 
     try {
-      await registerUser(
-        data.name,
-        data.emailOrPhone,
-        data.password,
-      );
+      await registerUser(data.name, data.emailOrPhone, data.password);
 
       navigate("/verify-account");
     } catch (error) {
@@ -106,7 +102,8 @@ const Register = () => {
             Create Account
           </h2>
           <p className="text-med-muted mt-2">
-            Register with an email address or phone number, then confirm it with a code.
+            Register with an email address or phone number, then confirm it with
+            a code.
           </p>
         </div>
 
@@ -143,7 +140,10 @@ const Register = () => {
               placeholder="you@example.com or +254712345678"
             />
             <p className="mt-2 text-xs text-slate-500">
-              We&apos;ll send a verification code to this contact before activating your account.
+              <strong>Email addresses:</strong> Verification code sent via email
+              <br />
+              <strong>Phone numbers:</strong> Verification code sent via SMS
+              (e.g., +254712345678, 0712345678, or 254712345678)
             </p>
             {errors.emailOrPhone && (
               <p className="mt-2 text-sm text-red-500">
@@ -195,7 +195,9 @@ const Register = () => {
                 onClick={() => setShowConfirmPassword((value) => !value)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-med-primary transition-colors focus:outline-none"
                 aria-label={
-                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
                 }
               >
                 {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}

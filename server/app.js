@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
+const phoneRoutes = require('./modules/phone/phone.routes');
 
 const authRoutes = require('./routes/authRoutes');
 const symptomRoutes = require('./routes/symptomRoutes');
@@ -53,6 +54,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/symptoms', symptomRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/clinical', clinicalRoutes);
+app.use('/api/v1/phone', phoneRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {

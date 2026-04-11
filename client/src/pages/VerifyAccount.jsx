@@ -107,7 +107,7 @@ const VerifyAccount = () => {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 animate-fade-in">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-med-primary"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-emerald-500 to-med-primary"></div>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-med-dark tracking-tight">
             Verify Your Account
@@ -122,6 +122,12 @@ const VerifyAccount = () => {
           <span className="font-semibold text-med-dark">Destination:</span>{" "}
           {pendingVerification.maskedVerificationTarget ||
             pendingVerification.verificationTarget}
+          <br />
+          <span className="text-xs text-slate-600 mt-2 inline-block">
+            {pendingVerification.verificationMethod === "phone"
+              ? "📱 Code sent via SMS"
+              : "📧 Code sent via email"}
+          </span>
         </div>
 
         {pendingVerification.deliveryStatus === "failed" && (

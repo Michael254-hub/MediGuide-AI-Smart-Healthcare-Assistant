@@ -44,20 +44,26 @@ const env = {
   
   // SMS PROVIDER CONFIGURATION
   // PRODUCTION REQUIREMENT: SMS provider is REQUIRED for phone verification
-  // Use webhook for third-party SMS services or external SMS API
-  smsProvider: process.env.SMS_PROVIDER || 'console', // 'console' (dev only) or 'webhook'
+  // Primary: Africa's Talking | Fallback: webhook | Dev: console
+  smsProvider: process.env.SMS_PROVIDER || 'console', // 'africas-talking', 'webhook', or 'console' (dev only)
+  smsSenderId: process.env.SMS_SENDER_ID || 'MediGuide',
+
+  // Africa's Talking
+  atApiKey: process.env.AT_API_KEY || '',
+  atUsername: process.env.AT_USERNAME || 'sandbox',
+
+  // Webhook fallback
   smsWebhookUrl: process.env.SMS_WEBHOOK_URL || '',
   smsWebhookAuthHeader: process.env.SMS_WEBHOOK_AUTH_HEADER || '',
   smsWebhookAuthToken: process.env.SMS_WEBHOOK_AUTH_TOKEN || '',
-  smsSenderId: process.env.SMS_SENDER_ID || 'MediGuide',
 };
 
 // PRODUCTION VALIDATION
 // Ensure all required providers are configured before starting
 if (isProduction) {
   const emailConfigured = env.nodemailerHost || (env.resendApiKey && env.resendFromEmail);
-  const smsConfigured = env.smsProvider === 'webhook' && env.smsWebhookUrl;
-  
+  const smsConfigured = env.atApiKey || (env.smsProvider === 'webhook' && env.smsWebhookUrl);
+
   if (!emailConfigured) {
     throw new Error(
       'PRODUCTION CONFIGURATION ERROR: Email provider not configured.\n' +
@@ -66,11 +72,12 @@ if (isProduction) {
       '  2. Resend: RESEND_API_KEY, RESEND_FROM_EMAIL\n'
     );
   }
-  
+
   if (!smsConfigured) {
     console.warn(
       'WARNING: SMS provider not configured for production.\n' +
-      'Phone-based verification will fail. Configure SMS_PROVIDER=webhook with SMS_WEBHOOK_URL'
+      'Phone-based verification will fail.\n' +
+      'Configure AT_API_KEY + AT_USERNAME (Africa\'s Talking) or SMS_PROVIDER=webhook + SMS_WEBHOOK_URL'
     );
   }
 }

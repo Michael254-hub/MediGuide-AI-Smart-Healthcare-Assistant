@@ -167,7 +167,7 @@ const SubmitSymptoms = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full animate-fade-in">
       <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-med-dark to-slate-800 p-8 sm:p-12 text-white relative">
+        <div className="bg-linear-to-r from-med-dark to-slate-800 p-8 sm:p-12 text-white relative">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Activity className="w-48 h-48" />
           </div>
@@ -185,7 +185,7 @@ const SubmitSymptoms = () => {
         <div className="p-8 sm:p-12">
           {error && (
             <div className="mb-8 p-4 rounded-xl bg-red-50 text-red-600 border border-red-100 text-sm font-medium flex items-center gap-3">
-              <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+              <ShieldAlert className="w-5 h-5 shrink-0" />
               {error}
             </div>
           )}

@@ -142,7 +142,7 @@ const Login = () => {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-med-primary to-med-accent"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-med-primary to-med-accent"></div>
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-med-dark tracking-tight">
             Welcome Back

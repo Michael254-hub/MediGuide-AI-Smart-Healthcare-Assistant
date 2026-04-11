@@ -4,6 +4,7 @@ const ResendEmailProvider = require('./email/resendEmailProvider');
 const NodemailerEmailProvider = require('./email/nodemailerEmailProvider');
 const ConsoleSmsProvider = require('./sms/consoleSmsProvider');
 const WebhookSmsProvider = require('./sms/webhookSmsProvider');
+const AfricasTalkingSmsProvider = require('./sms/africasTalkingSmsProvider');
 
 const buildEmailProvider = () => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -62,6 +63,12 @@ const buildEmailProvider = () => {
 const buildSmsProvider = () => {
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // Priority: Africa's Talking > webhook > console (dev only)
+  if (process.env.AT_API_KEY) {
+    console.log('[AfricasTalkingSmsProvider] SMS provider configured for Africa\'s Talking');
+    return new AfricasTalkingSmsProvider();
+  }
+
   if (env.smsProvider === 'webhook' && env.smsWebhookUrl) {
     return new WebhookSmsProvider();
   }
@@ -70,8 +77,8 @@ const buildSmsProvider = () => {
   if (isProduction) {
     throw new Error(
       'FATAL: No SMS provider configured for production. ' +
-      'You must set SMS_PROVIDER=webhook and SMS_WEBHOOK_URL in .env ' +
-      'or use an external SMS service.'
+      'You must set AT_API_KEY and AT_USERNAME in .env ' +
+      'OR set SMS_PROVIDER=webhook and SMS_WEBHOOK_URL in .env'
     );
   }
 
