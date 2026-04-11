@@ -20,7 +20,10 @@ class VerificationService {
   }
 
   calculateExpiresAt() {
-    return new Date(Date.now() + env.verificationCodeTtlMinutes * 60 * 1000);
+    // Return as ISO string for consistent timezone handling
+    // This ensures UTC is always used in comparisons
+    const expiresAtMs = Date.now() + env.verificationCodeTtlMinutes * 60 * 1000;
+    return new Date(expiresAtMs).toISOString();
   }
 
   getChannelForContactType(contactType) {
@@ -80,8 +83,10 @@ class VerificationService {
     const challengeId = crypto.randomUUID();
     const code = this.generateVerificationCode();
     const nowIso = new Date().toISOString();
-    const expiresAt = this.calculateExpiresAt().toISOString();
+    const expiresAt = this.calculateExpiresAt();
     const channel = this.getChannelForContactType(contact.type);
+
+    console.log(`[VERIFICATION] Created challenge for user ${user.id} (${contact.type}), expires in ${env.verificationCodeTtlMinutes} minutes`);
 
     await verificationChallengeRepository.invalidateActiveChallenges(
       user.id,
@@ -152,12 +157,17 @@ class VerificationService {
         pendingContact.type
       );
 
-    if (latestChallenge && new Date() <= new Date(latestChallenge.expires_at)) {
-      return this.buildPendingVerificationPayload(user, latestChallenge, {
-        deliveryStatus: 'pending',
-        deliveryMessage:
-          'Use the latest verification code we already sent, or request a new one after the cooldown.',
-      });
+    // Use numeric timestamp comparison for accuracy with timezone handling
+    if (latestChallenge) {
+      const expiryTime = new Date(latestChallenge.expires_at).getTime();
+      const currentTime = Date.now();
+      if (currentTime <= expiryTime) {
+        return this.buildPendingVerificationPayload(user, latestChallenge, {
+          deliveryStatus: 'pending',
+          deliveryMessage:
+            'Use the latest verification code we already sent, or request a new one after the cooldown.',
+        });
+      }
     }
 
     return this.createChallenge(user, pendingContact);
@@ -239,7 +249,13 @@ class VerificationService {
       });
     }
 
-    if (new Date() > new Date(challenge.expires_at)) {
+    // Compare timestamps using numeric comparison for accuracy
+    // Timestamps from Supabase are normalized to UTC with 'Z' suffix in repository
+    const expiryTime = new Date(challenge.expires_at).getTime();
+    const currentTime = Date.now();
+    
+    if (currentTime > expiryTime) {
+      console.warn(`[VERIFICATION] Code expired for user ${userId} - attempt to verify after expiry`);
       await verificationChallengeRepository.invalidateActiveChallenges(
         userId,
         'signup',

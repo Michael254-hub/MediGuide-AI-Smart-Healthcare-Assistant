@@ -32,7 +32,10 @@ app.locals.upload = upload;
 
 // Security and utility middlewares
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin }));
+app.use(cors({ 
+  origin: Array.isArray(env.corsOrigin) ? env.corsOrigin : env.corsOrigin,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));

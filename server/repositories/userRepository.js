@@ -2,6 +2,18 @@ const { supabase } = require('../config/supabaseClient');
 const bcrypt = require('bcrypt');
 
 class UserRepository {
+  // Helper method to ensure timestamps are UTC (add 'Z' if missing)
+  // Supabase returns TIMESTAMP fields without timezone indicator
+  normalizeTimestamps(data) {
+    if (!data) return data;
+    
+    if (data.password_reset_expires_at && typeof data.password_reset_expires_at === 'string' && !data.password_reset_expires_at.endsWith('Z')) {
+      data.password_reset_expires_at = `${data.password_reset_expires_at}Z`;
+    }
+    
+    return data;
+  }
+
   async create(userData) {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     const { data, error } = await supabase
@@ -25,7 +37,23 @@ class UserRepository {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return this.normalizeTimestamps(data);
+  }
+
+  async findVerifiedByEmail(email) {
+    if (!email) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('email_verified', true)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return this.normalizeTimestamps(data);
   }
 
   async findByPhone(phone) {
@@ -40,7 +68,23 @@ class UserRepository {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return this.normalizeTimestamps(data);
+  }
+
+  async findVerifiedByPhone(phone) {
+    if (!phone) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', phone)
+      .eq('phone_verified', true)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return this.normalizeTimestamps(data);
   }
 
   async findByEmailOrPhone(emailOrPhone) {
@@ -60,7 +104,7 @@ class UserRepository {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return this.normalizeTimestamps(data);
   }
 
   async findAuthById(id) {
@@ -71,7 +115,7 @@ class UserRepository {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return this.normalizeTimestamps(data);
   }
 
   async countAll() {
@@ -156,7 +200,7 @@ class UserRepository {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return this.normalizeTimestamps(data);
   }
 }
 

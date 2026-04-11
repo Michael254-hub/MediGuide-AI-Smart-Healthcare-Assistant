@@ -1,6 +1,30 @@
 const { supabase } = require('../config/supabaseClient');
 
 class VerificationChallengeRepository {
+  // Helper method to ensure timestamps are UTC (add 'Z' if missing)
+  // Supabase returns TIMESTAMP fields without timezone indicator
+  normalizeTimestamps(data) {
+    if (!data) return data;
+    
+    if (data.expires_at && typeof data.expires_at === 'string' && !data.expires_at.endsWith('Z')) {
+      data.expires_at = `${data.expires_at}Z`;
+    }
+    
+    if (data.last_sent_at && typeof data.last_sent_at === 'string' && !data.last_sent_at.endsWith('Z')) {
+      data.last_sent_at = `${data.last_sent_at}Z`;
+    }
+    
+    if (data.created_at && typeof data.created_at === 'string' && !data.created_at.endsWith('Z')) {
+      data.created_at = `${data.created_at}Z`;
+    }
+    
+    if (data.updated_at && typeof data.updated_at === 'string' && !data.updated_at.endsWith('Z')) {
+      data.updated_at = `${data.updated_at}Z`;
+    }
+    
+    return data;
+  }
+
   async create(challenge) {
     const { data, error } = await supabase
       .from('verification_challenges')
@@ -12,7 +36,7 @@ class VerificationChallengeRepository {
       throw error;
     }
 
-    return data;
+    return this.normalizeTimestamps(data);
   }
 
   async invalidateActiveChallenges(userId, purpose, contactType) {
@@ -50,7 +74,7 @@ class VerificationChallengeRepository {
       throw error;
     }
 
-    return data;
+    return this.normalizeTimestamps(data);
   }
 
   async incrementAttempts(id, nextAttemptCount) {
@@ -68,7 +92,7 @@ class VerificationChallengeRepository {
       throw error;
     }
 
-    return data;
+    return this.normalizeTimestamps(data);
   }
 
   async markConsumed(id) {
@@ -86,7 +110,7 @@ class VerificationChallengeRepository {
       throw error;
     }
 
-    return data;
+    return this.normalizeTimestamps(data);
   }
 }
 

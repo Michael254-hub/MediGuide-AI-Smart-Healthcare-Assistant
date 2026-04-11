@@ -37,31 +37,68 @@ class UserService {
     const { name, emailOrPhone, password } = userData;
     const { email, phone } = parseIdentifier(emailOrPhone);
 
+    let user;
+    let isReusingUnverifiedRecord = false;
+
+    // Check for VERIFIED email - block registration if already verified
     if (email) {
-      const userExists = await userRepository.findByEmail(email);
-      if (userExists) {
+      const verifiedUser = await userRepository.findVerifiedByEmail(email);
+      if (verifiedUser) {
         throw new AppError('Email already exists', 400, { code: 'EMAIL_EXISTS' });
+      }
+
+      // Check for UNVERIFIED email - reuse the existing record
+      const unverifiedUser = await userRepository.findByEmail(email);
+      if (unverifiedUser) {
+        // Hash password and update existing unverified user
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user = await userRepository.update(unverifiedUser.id, {
+          name,
+          password: hashedPassword,
+          updated_at: new Date().toISOString(),
+        });
+        isReusingUnverifiedRecord = true;
       }
     }
 
-    if (phone) {
-      const phoneExists = await userRepository.findByPhone(phone);
-      if (phoneExists) {
+    // Check for VERIFIED phone - block registration if already verified
+    if (!user && phone) {
+      const verifiedUser = await userRepository.findVerifiedByPhone(phone);
+      if (verifiedUser) {
         throw new AppError('Phone number already registered', 400, {
           code: 'PHONE_EXISTS',
         });
       }
+
+      // Check for UNVERIFIED phone - reuse the existing record
+      const unverifiedUser = await userRepository.findByPhone(phone);
+      if (unverifiedUser) {
+        // Hash password and update existing unverified user
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user = await userRepository.update(unverifiedUser.id, {
+          name,
+          password: hashedPassword,
+          updated_at: new Date().toISOString(),
+        });
+        isReusingUnverifiedRecord = true;
+      }
     }
 
-    const user = await userRepository.create({
-      name,
-      email: email || null,
-      password,
-      phone: phone || null,
-      role: 'patient',
-    });
+    // Create new user if neither email nor phone exists
+    if (!user) {
+      user = await userRepository.create({
+        name,
+        email: email || null,
+        password,
+        phone: phone || null,
+        role: 'patient',
+      });
+    }
 
-    const pendingVerification = await verificationService.startSignupVerification(user);
+    // Start or resend verification challenge
+    const pendingVerification = isReusingUnverifiedRecord
+      ? await verificationService.resendSignupVerification(user.id, email ? 'email' : 'phone')
+      : await verificationService.startSignupVerification(user);
 
     return {
       user: {
@@ -164,7 +201,10 @@ class UserService {
       });
     }
 
-    if (new Date() > new Date(user.password_reset_expires_at)) {
+    // Use numeric timestamp comparison for accuracy with timezone handling
+    const resetTokenExpiry = new Date(user.password_reset_expires_at).getTime();
+    const currentTime = Date.now();
+    if (currentTime > resetTokenExpiry) {
       throw new AppError('Password reset token has expired', 400, {
         code: 'RESET_TOKEN_EXPIRED',
       });

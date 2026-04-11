@@ -39,7 +39,9 @@ const VerifyAccount = () => {
   }, [now, pendingVerification?.resendAvailableAt]);
 
   if (user && isUserVerified(user)) {
-    return <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />;
+    return (
+      <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />
+    );
   }
 
   if (!pendingVerification) {
@@ -48,7 +50,8 @@ const VerifyAccount = () => {
         <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-100 text-center">
           <h2 className="text-2xl font-bold text-med-dark">Verify Account</h2>
           <p className="text-med-muted mt-3">
-            Start registration or sign in first to create a verification session.
+            Start registration or sign in first to create a verification
+            session.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link
@@ -110,7 +113,8 @@ const VerifyAccount = () => {
             Verify Your Account
           </h2>
           <p className="text-med-muted mt-2">
-            Enter the 6-digit code sent to your {pendingVerification.verificationMethod}.
+            Enter the 6-digit code sent to your{" "}
+            {pendingVerification.verificationMethod}.
           </p>
         </div>
 
@@ -123,13 +127,6 @@ const VerifyAccount = () => {
         {pendingVerification.deliveryStatus === "failed" && (
           <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
             {pendingVerification.deliveryMessage}
-          </div>
-        )}
-
-        {pendingVerification.verificationCode && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
-            Development preview code:{" "}
-            <span className="font-bold">{pendingVerification.verificationCode}</span>
           </div>
         )}
 
@@ -155,7 +152,9 @@ const VerifyAccount = () => {
               inputMode="numeric"
               maxLength={6}
               value={verificationCode}
-              onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
+              onChange={(event) =>
+                setVerificationCode(event.target.value.replace(/\D/g, ""))
+              }
               className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-med-primary focus:ring-med-primary/20 focus:outline-none focus:ring-4 transition-all bg-slate-50 focus:bg-white tracking-[0.4em] text-center text-lg"
               placeholder="123456"
             />
@@ -189,7 +188,8 @@ const VerifyAccount = () => {
           </button>
           {pendingVerification.expiresAt && (
             <p className="text-xs text-slate-500">
-              Code expires at {new Date(pendingVerification.expiresAt).toLocaleString()}.
+              Code expires at{" "}
+              {new Date(pendingVerification.expiresAt).toLocaleString()}.
             </p>
           )}
         </div>
