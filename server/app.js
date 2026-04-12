@@ -16,15 +16,40 @@ const patientProfileRoutes = require('./routes/patientProfileRoutes');
 const env = require('./config/env');
 
 const app = express();
-const allowedOrigins = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
+const normalizeOriginValue = (value) => {
+  if (!value) {
+    return '';
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (trimmedValue.includes('*')) {
+    return trimmedValue.replace(/\/+$/, '');
+  }
+
+  try {
+    return new URL(trimmedValue).origin;
+  } catch {
+    return trimmedValue.replace(/\/+$/, '');
+  }
+};
+
+const configuredOrigins = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
+const allowedOrigins = [...new Set([...configuredOrigins, env.appBaseUrl].map(normalizeOriginValue).filter(Boolean))];
 const escapeRegex = (value) => value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
 const matchesAllowedOrigin = (origin) =>
   allowedOrigins.some((allowedOrigin) => {
+    const normalizedOrigin = normalizeOriginValue(origin);
+
     if (!allowedOrigin) {
       return false;
     }
 
-    if (allowedOrigin === origin) {
+    if (allowedOrigin === normalizedOrigin) {
       return true;
     }
 
@@ -37,7 +62,7 @@ const matchesAllowedOrigin = (origin) =>
       .map(escapeRegex)
       .join('.*')}$`;
 
-    return new RegExp(wildcardPattern).test(origin);
+    return new RegExp(wildcardPattern).test(normalizedOrigin);
   });
 
 const storage = multer.memoryStorage();
@@ -105,6 +130,7 @@ app.use(
           code: 'CORS_ORIGIN_BLOCKED',
           details: {
             origin,
+            normalizedOrigin: normalizeOriginValue(origin),
             allowedOrigins,
           },
         })
