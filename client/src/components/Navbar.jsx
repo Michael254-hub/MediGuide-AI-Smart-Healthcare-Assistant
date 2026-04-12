@@ -136,7 +136,7 @@ const Navbar = () => {
                 to="/clinical"
                 className="text-med-text hover:text-med-primary transition-colors font-medium flex items-center gap-1"
               >
-                <span>🧠</span> Clinical AI
+                <span>🧠</span> MediGuide AI
               </Link>
               {user?.role === "admin" && (
                 <Link

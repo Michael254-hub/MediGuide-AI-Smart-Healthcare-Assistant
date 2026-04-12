@@ -78,6 +78,25 @@ export const patientProfileAPI = {
 
 // Clinical API methods
 export const clinicalAPI = {
+  getPatientData: () => api.get('/clinical/patient-data'),
+  getSuggestions: () => api.get('/clinical/suggestions'),
+  sendMediGuideMessage: ({ question, conversationHistory = [], attachments = [] }) => {
+    if (attachments.length > 0) {
+      const formData = new FormData();
+      formData.append('question', question || '');
+      formData.append('conversationHistory', JSON.stringify(conversationHistory));
+      attachments.forEach((attachment) => {
+        formData.append('attachments', attachment);
+      });
+
+      return api.post('/clinical/consult', formData);
+    }
+
+    return api.post('/clinical/consult', {
+      question,
+      conversationHistory,
+    });
+  },
   getRiskAssessment: () => api.get('/clinical/risk-assessment'),
   getTriageHistory: () => api.get('/clinical/triage-history'),
   addClinicalNotes: (data) => api.post('/clinical/notes', data),

@@ -2,11 +2,11 @@
 
 ## 🏥 Overview
 
-MediGuide is a comprehensive AI-powered clinical decision support system that integrates with the Google Gemini 3 Flash API to provide evidence-based clinical guidance. The system analyzes patient data across multiple dimensions and delivers intelligent recommendations to support clinical decision-making.
+MediGuide is a comprehensive AI-powered clinical decision support system that integrates with the Google Gemini Flash API to provide evidence-based clinical guidance. The system analyzes patient data across multiple dimensions and delivers intelligent recommendations to support clinical decision-making.
 
 ### ✨ Version 2.0 Enhancements
 
-- **Multimodal AI Processing**: Google Gemini 3 can analyze text, images, and voice input simultaneously
+- **Multimodal AI Processing**: Google Gemini can analyze text, images, and voice input simultaneously
 - **Voice Input Support**: Patients can describe symptoms naturally via speech-to-text
 - **Image Analysis**: Medical images, rashes, and visible symptoms are analyzed by the AI
 - **Enhanced Context**: Richer clinical information from multiple input modalities
@@ -51,9 +51,9 @@ The clinical dashboard is a multi-tab interface with real-time AI consultation:
 - **Risk Assessment Card**: Overall risk score (0-100) with contributing factors
 - **Action Items**: Prioritized clinical tasks (HIGH/MEDIUM/LOW)
 
-##### **2. AI Consultation Tab**
+##### **2. MediGuide Chat Tab**
 
-- **Real-time Chat Interface**: Bidirectional communication with Gemini 3 Flash
+- **Real-time Chat Interface**: Bidirectional communication with Gemini Flash
 - **Multimodal Context**: AI understands patient context from all input types
 - **Suggested Questions**: AI-generated clinical questions tailored to patient data
 - **Conversation History**: Maintains context across multiple questions
@@ -98,7 +98,7 @@ buildClinicalContext(patientData); // Formats data for AI processing
 - Risk assessment scoring
 - Prioritized action items
 
-#### **AI Consultation Service** (`server/services/aiConsultationService.js`) - UPGRADED for Gemini 3
+#### **MediGuide Chat Service** (`server/services/aiConsultationService.js`) - UPGRADED for Gemini
 
 ```javascript
 consultWithAI(patientContext, question, conversationHistory, imageData);
@@ -107,7 +107,7 @@ analyzeSymptomImage(imageData, symptomDescription);
 generateSuggestions(patientContext);
 ```
 
-**Gemini 3 Flash Model Features:**
+**Gemini Flash Model Features:**
 
 ✅ **Multimodal Input**: Accepts text + images + voice transcriptions
 ✅ **Real-time Streaming**: Fast token generation for responsive UI
@@ -195,7 +195,7 @@ Visit: `http://localhost:5173`
 
 ## 📊 AI Integration Details
 
-### Google Gemini 3 Flash Model
+### Google Gemini Flash Model
 
 **Model ID:** `gemini-3-flash`
 
@@ -345,7 +345,7 @@ All `/api/v1/clinical/*` and `/api/v1/symptoms/*` routes require:
 ### Rate Limiting
 
 - API rate limiting: 100 requests per 15 minutes
-- Anthropic API rate limit: Based on your subscription
+- Gemini API rate limit: Based on your subscription
 
 ## 📈 Token Usage
 
@@ -360,7 +360,7 @@ Each consultation call includes token metrics:
 
 **Estimate costs:**
 
-- Claude 3.5 Sonnet: $3/1M input tokens, $15/1M output tokens
+- Google Gemini: $3/1M input tokens, $15/1M output tokens
 - Average consultation: ~3,650 tokens = ~$0.06
 
 ## 🚀 Production Deployment
@@ -475,14 +475,14 @@ curl -X POST http://localhost:5000/api/v1/clinical/consult \
 Navigate to:
 
 - `http://localhost:5173/clinical` - Full clinical dashboard
-- Use the AI Consultation tab to ask questions
+- Use the MediGuide Chat tab to ask questions
 - Click suggested questions to test auto-generation
 
 ## 🐛 Troubleshooting
 
-### "Anthropic API key not found"
+### "Gemini API key not found"
 
-- Set `ANTHROPIC_API_KEY` in `.env`
+- Set `GEMINI_API_KEY` in `.env`
 - Restart server: `npm run dev`
 
 ### "API returns 401 Unauthorized"
@@ -491,9 +491,9 @@ Navigate to:
 - User must be logged in
 - Check token expiration (30 days)
 
-### "Claude model not responding"
+### "Gemini model not responding"
 
-- Check Anthropic API status: https://status.anthropic.com/
+- Check Google AI Studio availability and your project quota: https://aistudio.google.com/
 - Verify API key has active quota
 - Check rate limits
 
@@ -505,8 +505,9 @@ Navigate to:
 
 ## 📚 Resources
 
-- [Anthropic API Docs](https://docs.anthropic.com/)
-- [Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet)
+- [Gemini API Docs](https://ai.google.dev/docs)
+- [Gemini API Pricing](https://ai.google.dev/pricing)
+- [Google AI Studio](https://aistudio.google.com/)
 - [FHIR Standard](https://www.hl7.org/fhir/)
 - [Clinical Guidelines (ACC/AHA)](https://www.heart.org/en/guidelines)
 - [Drug Interaction Checking (FDA)](https://www.fda.gov/)
@@ -529,7 +530,7 @@ Navigate to:
 For issues or questions:
 
 1. Check troubleshooting section
-2. Review Anthropic API documentation
+2. Review Gemini API documentation
 3. Check server logs: `npm run dev` output
 4. Verify .env configuration
 5. Test each endpoint independently

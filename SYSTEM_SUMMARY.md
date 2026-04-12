@@ -3,7 +3,7 @@
 ## 🎯 Project Status: ENHANCED & READY FOR USE
 
 **Last Updated:** April 8, 2026  
-**Version:** 2.0.0 - Gemini 3 Integration Complete  
+**Version:** 2.0.0 - Gemini Integration Complete  
 **Status:** ✅ All Core Features + Voice & Image Input Implemented
 
 ---
@@ -20,10 +20,10 @@
 - Automatic token injection on all API requests
 - Protected routes with PrivateRoute component
 
-#### 2. **Clinical Decision Support Backend (Powered by Google Gemini 3)**
+#### 2. **MediGuide AI Backend (Powered by Google Gemini)**
 
 - 7 RESTful API endpoints for clinical data access
-- **Google Gemini 3 Flash** integration (multimodal AI reasoning)
+- **Google Gemini Flash** integration (multimodal AI reasoning)
 - **Image Analysis** - Analyzes symptom photos and medical images
 - **Voice Input Processing** - Transcribed speech to clinical context
 - Comprehensive patient data service (mock generation)
@@ -62,7 +62,7 @@ server/
 │   │   └── Mock patient data generation
 │   │   └── Clinical context building
 │   └── aiConsultationService.js        (250+ lines - UPGRADED)
-│       ├── Google Gemini 3 SDK integration
+│       ├── Google Gemini SDK integration
 │       ├── Streaming response handling
 │       ├── Conversation history management
 │       ├── Image analysis capability
@@ -109,13 +109,13 @@ Documentation/
 ```
 server/
 ├── package.json                        (UPDATED)
-│   └── Replaced @anthropic-ai/sdk with @google/generative-ai
+│   └── Uses @google/generative-ai for Gemini integration
 │
 ├── app.js                              (+2 lines prior update)
 │   └── Clinical routes import and mounting
 │
 └── .env
-    └── GEMINI_API_KEY (replaces ANTHROPIC_API_KEY)
+    └── GEMINI_API_KEY configured for MediGuide AI
 
 client/
 ├── src/pages/SubmitSymptoms.jsx        (ENHANCED)
@@ -131,7 +131,7 @@ client/
 │
 ├── src/components/
 │ ├── Navbar.jsx (+1 line)
-│ │ └── Added Clinical AI link (🧠)
+│ │ └── Added MediGuide AI link (🧠)
 │ │
 │ └── PrivateRoute.jsx (bugfix)
 │ └── Changed from AuthContext to useAuthStore
@@ -153,7 +153,7 @@ client/
 ┌─────────────────────────────────────────────────────────┐
 │ PRESENTATION LAYER │
 │ React Components (ClinicalDashboard with 5 tabs) │
-│ • Dashboard • AI Consultation • Dx • Medications • Labs│
+│ • Dashboard • MediGuide Chat • Dx • Medications • Labs│
 └─────────────────────────────────────────────────────────┘
 ↓ (Axios + JWT)
 ┌─────────────────────────────────────────────────────────┐
@@ -171,12 +171,12 @@ client/
 │ │ │ │
 └──────────────────┼──────────────────┼──────────────────┘
 ↓ ↓ ↓
-Zustand Anthropic API Mock Data
-(Auth) (Claude 3.5) (Patient)
+Zustand Gemini API Mock Data
+(Auth) (Google Gemini) (Patient)
 
 ```
 
-### Data Flow Example: AI Consultation
+### Data Flow Example: MediGuide Chat
 
 ```
 
@@ -193,7 +193,7 @@ User: "What's the cardiovascular risk?"
 [Service] aiConsultationService.consultWithAI()
 ├─ Gets patient context from clinicalDataService
 ├─ Injects context + history into prompt
-├─ Sends to Anthropic API
+├─ Sends to Gemini API
 └─ Receives streamed response
 ↓
 [Response] Returns formatted answer with token usage
@@ -241,9 +241,8 @@ User: "What's the cardiovascular risk?"
 3. **Streaming Responses**
    ```javascript
    // Real-time token-by-token streaming
-   const stream = await anthropic.messages.stream({
-     stream: true, // Enables Server-Sent Events
-     ...options,
+   const stream = await model.generateContentStream({
+     contents,
    });
    ```
 
@@ -375,7 +374,7 @@ Time: < 100ms
 - [x] JWT protection working
 - [x] Error handling on invalid input
 - [x] Rate limiting (if configured)
-- [x] Anthropic API integration
+- [x] Gemini API integration
 - [x] Stream responses working
 
 #### Integration Tests ✅
@@ -424,7 +423,7 @@ Time: < 100ms
 
 | Component                     | Usage                                       | Cost            |
 | ----------------------------- | ------------------------------------------- | --------------- |
-| **Anthropic API**             | 3,000 consultations/month (avg 3.5K tokens) | ~$180           |
+| **Gemini API**             | 3,000 consultations/month (avg 3.5K tokens) | ~$180           |
 | **Supabase**                  | 1,000 MAU, 50GB DB                          | ~$25            |
 | **Cloud Hosting** (AWS/Azure) | t3.medium instance                          | ~$30            |
 | **Storage**                   | Patient data + history                      | ~$10            |
@@ -433,7 +432,7 @@ Time: < 100ms
 
 ### Cost Optimization Strategies
 
-- Use Claude Haiku 3.5 for simple Q&A (~$0.08/consultation)
+- Use Gemini Flash for simple Q&A to keep consultation costs lower
 - Implement response caching for frequently asked questions
 - Batch API calls where possible
 - Archive old conversation history
@@ -515,7 +514,7 @@ Time: < 100ms
 - Risk score (0-100 gauge)
 - Prioritized action items
 
-**AI Consultation Tab:**
+**MediGuide Chat Tab:**
 
 - Chat interface (message history)
 - Input field for questions
@@ -575,11 +574,11 @@ Current BP: 142/92. HbA1c: 7.8%. On Lisinopril and Metformin..."
 
 #### aiConsultationService.js (120 lines)
 
-**Purpose:** Anthropic Claude API integration
+**Purpose:** Google Gemini API integration
 
 **CLINICAL_SYSTEM_PROMPT:**
 
-- 50-line clinical instruction to Claude
+- 50-line clinical instruction to MediGuide AI
 - Emphasizes evidence-based reasoning
 - Covers clinical guidelines (ACC/AHA, ADA)
 - Includes drug interaction analysis
@@ -604,7 +603,7 @@ Current BP: 142/92. HbA1c: 7.8%. On Lisinopril and Metformin..."
 **generateSuggestions(patientContext):**
 
 ```javascript
-// Prompts Claude to generate relevant questions
+// Prompts Gemini to generate relevant questions
 // Returns JSON array of 5-7 suggested questions
 // Updates automatically when patient data changes
 ```
@@ -675,23 +674,23 @@ Each handles:
 
 ## 🐛 Common Issues & Solutions
 
-### Issue: "Cannot find module @anthropic-ai/sdk"
+### Issue: "Cannot find module @google/generative-ai"
 
 **Cause:** Package not installed  
 **Solution:**
 
 ```bash
 cd server
-npm install @anthropic-ai/sdk
+npm install @google/generative-ai
 ```
 
-### Issue: "ANTHROPIC_API_KEY not found"
+### Issue: "GEMINI_API_KEY not found"
 
 **Cause:** .env not configured  
 **Solution:**
 
-1. Get key from console.anthropic.com
-2. Add to server/.env: `ANTHROPIC_API_KEY=sk-ant-...`
+1. Get a key from Google AI Studio
+2. Add to server/.env: `GEMINI_API_KEY=AIza...`
 3. Restart server
 
 ### Issue: "401 Unauthorized on API call"
@@ -747,7 +746,7 @@ Before declaring "ready for use":
 
 ### Immediate (This Week)
 
-1. Configure ANTHROPIC_API_KEY
+1. Configure GEMINI_API_KEY
 2. Test all endpoints manually
 3. Verify with test user account
 4. Document any issues found
@@ -807,7 +806,7 @@ Before declaring "ready for use":
 The system combines:
 
 - ✅ Modern cloud infrastructure (Supabase)
-- ✅ Advanced AI reasoning (Claude 3.5 Sonnet)
+- ✅ Advanced AI reasoning (Google Gemini)
 - ✅ Professional UI/UX (React with Tailwind)
 - ✅ Enterprise security (JWT + CORS)
 - ✅ Comprehensive documentation

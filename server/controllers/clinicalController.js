@@ -1,5 +1,5 @@
 /**
- * Clinical Decision Support Controller
+ * MediGuide AI Controller
  * Handles all endpoints for the AI-powered clinical support system
  */
 
@@ -8,9 +8,15 @@ const {
   mergeProfileIntoClinicalData,
   buildClinicalContext,
 } = require('../services/clinicalDataService');
-const { consultWithAI, generateSuggestions } = require('../services/aiConsultationService');
+const {
+  consultWithAI,
+  generateSuggestions,
+  DEFAULT_SUGGESTIONS,
+} = require('../services/aiConsultationService');
 const patientProfileService = require('../services/patientProfileService');
 const { getRequestContext } = require('../utils/requestContext');
+const DEFAULT_ATTACHMENT_PROMPT =
+  'Please review the attached materials and provide the most clinically relevant findings, risks, and next steps.';
 
 const getClinicalDataForUser = async (user, req, auditAction = 'READ') => {
   const baseClinicalData = generateMockPatientData(user.id);
@@ -20,6 +26,62 @@ const getClinicalDataForUser = async (user, req, auditAction = 'READ') => {
   });
 
   return mergeProfileIntoClinicalData(baseClinicalData, user, profile);
+};
+
+const parseConversationHistory = (rawHistory) => {
+  if (!rawHistory) {
+    return [];
+  }
+
+  let parsedHistory = rawHistory;
+
+  if (typeof rawHistory === 'string') {
+    try {
+      parsedHistory = JSON.parse(rawHistory);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsedHistory)) {
+    return [];
+  }
+
+  return parsedHistory
+    .filter(
+      (message) =>
+        message &&
+        typeof message.role === 'string' &&
+        typeof message.content === 'string' &&
+        message.content.trim()
+    )
+    .map((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
+};
+
+const buildAttachmentPayload = (files = []) =>
+  files.map((file) => ({
+    name: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+    data: file.buffer.toString('base64'),
+  }));
+
+const normalizeQuestion = (rawQuestion, attachments) => {
+  const trimmedQuestion =
+    typeof rawQuestion === 'string' ? rawQuestion.trim() : '';
+
+  if (trimmedQuestion) {
+    return trimmedQuestion;
+  }
+
+  if (attachments.length > 0) {
+    return DEFAULT_ATTACHMENT_PROMPT;
+  }
+
+  return '';
 };
 
 /**
@@ -45,12 +107,14 @@ const getPatientData = async (req, res, next) => {
  */
 const getAIConsultation = async (req, res, next) => {
   try {
-    const { question, conversationHistory = [] } = req.body;
+    const attachments = buildAttachmentPayload(req.files);
+    const conversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const question = normalizeQuestion(req.body.question, attachments);
 
-    if (!question || typeof question !== 'string' || question.trim().length === 0) {
+    if (!question) {
       return res.status(400).json({
         success: false,
-        message: 'Question is required and must be a non-empty string'
+        message: 'A text prompt or at least one attachment is required'
       });
     }
 
@@ -60,8 +124,9 @@ const getAIConsultation = async (req, res, next) => {
     // Get AI consultation
     const consultation = await consultWithAI(
       clinicalContext,
-      question.trim(),
-      conversationHistory
+      question,
+      conversationHistory,
+      attachments
     );
 
     if (!consultation.success) {
@@ -76,6 +141,7 @@ const getAIConsultation = async (req, res, next) => {
       data: {
         consultation: consultation.response,
         usage: consultation.usage,
+        attachmentsProcessed: attachments.length,
         timestamp: new Date().toISOString()
       }
     });
@@ -90,12 +156,14 @@ const getAIConsultation = async (req, res, next) => {
  */
 const getAIConsultationStream = async (req, res, next) => {
   try {
-    const { question, conversationHistory = [] } = req.body;
+    const attachments = buildAttachmentPayload(req.files);
+    const conversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const question = normalizeQuestion(req.body.question, attachments);
 
-    if (!question || typeof question !== 'string' || question.trim().length === 0) {
+    if (!question) {
       return res.status(400).json({
         success: false,
-        message: 'Question is required'
+        message: 'A text prompt or at least one attachment is required'
       });
     }
 
@@ -112,8 +180,9 @@ const getAIConsultationStream = async (req, res, next) => {
 
     const stream = await consultWithAIStream(
       clinicalContext,
-      question.trim(),
-      conversationHistory
+      question,
+      conversationHistory,
+      attachments
     );
 
     let fullResponse = '';
@@ -154,17 +223,14 @@ const getSuggestions = async (req, res, next) => {
     // Generate suggestions
     const suggestionsResult = await generateSuggestions(clinicalContext);
 
-    if (!suggestionsResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to generate suggestions'
-      });
-    }
-
     res.status(200).json({
       success: true,
       data: {
-        suggestions: suggestionsResult.suggestions
+        suggestions:
+          Array.isArray(suggestionsResult.suggestions) &&
+          suggestionsResult.suggestions.length > 0
+            ? suggestionsResult.suggestions
+            : DEFAULT_SUGGESTIONS
       }
     });
   } catch (error) {

@@ -1,13 +1,19 @@
 /**
- * AI Consultation Service
- * Uses Google Gemini 3 API to provide clinical decision support
+ * MediGuide Chat Service
+ * Uses Google Gemini API to provide clinical decision support
  */
 
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const DEFAULT_SUGGESTIONS = [
+  "What findings in this patient suggest the highest immediate risk?",
+  "What differential diagnoses should we prioritize based on the current data?",
+  "Which follow-up tests or monitoring steps would be most useful next?",
+  "Are there any medication safety concerns or interaction risks to address?",
+];
 
-const CLINICAL_SYSTEM_PROMPT = `You are an advanced clinical decision support AI assistant powered by medical knowledge and evidence-based guidelines. You have deep expertise in:
+const CLINICAL_SYSTEM_PROMPT = `You are MediGuide AI, an advanced clinical decision support assistant powered by Google Gemini and evidence-based medical knowledge. You have deep expertise in:
 
 - Internal Medicine and Primary Care
 - Clinical Pharmacology and Drug Interactions
@@ -32,9 +38,31 @@ FORMAT YOUR RESPONSES with:
 - Specific actionable recommendations
 - Follow-up timeline and monitoring parameters
 
-CRITICAL: This is a decision support tool to assist clinicians, NOT a replacement for clinical judgment. Always recommend human physician review of all recommendations.`;
+CRITICAL: This is a decision support tool to assist clinicians, NOT a replacement for clinical judgment. Always recommend human physician review of all recommendations.
 
-const createConsultationMessage = (patientContext, userQuestion, imageData = null) => {
+When responding in conversations, identify yourself as MediGuide AI when relevant and maintain a clear, supportive, professional tone.`;
+
+const describeAttachment = (attachment) => {
+  if (attachment.mimeType.startsWith('image/')) {
+    return `image: ${attachment.name}`;
+  }
+
+  if (attachment.mimeType.startsWith('video/')) {
+    return `video: ${attachment.name}`;
+  }
+
+  return `document: ${attachment.name}`;
+};
+
+const buildAttachmentParts = (attachments = []) =>
+  attachments.map((attachment) => ({
+    inlineData: {
+      mimeType: attachment.mimeType,
+      data: attachment.data,
+    },
+  }));
+
+const createConsultationMessage = (patientContext, userQuestion, attachments = []) => {
   let message = `Patient Context:
 ${patientContext}
 
@@ -43,14 +71,22 @@ ${userQuestion}
 
 Provide a detailed, evidence-based clinical consultation addressing the question with specific recommendations.`;
 
-  if (imageData) {
-    message += `\n\nNote: Visual information (images/rashes/visible symptoms) has been provided for analysis.`;
+  if (attachments.length > 0) {
+    message += `\n\nAttached materials for review:
+${attachments.map((attachment) => `- ${describeAttachment(attachment)}`).join('\n')}
+
+Incorporate any clinically relevant findings from these materials into your answer.`;
   }
 
   return message;
 };
 
-const consultWithAI = async (patientContext, userQuestion, conversationHistory = [], imageData = null) => {
+const consultWithAI = async (
+  patientContext,
+  userQuestion,
+  conversationHistory = [],
+  attachments = []
+) => {
   try {
     const model = client.getGenerativeModel({
       model: 'gemini-3-flash',
@@ -86,21 +122,9 @@ const consultWithAI = async (patientContext, userQuestion, conversationHistory =
       });
     });
 
-    // Create current message with optional image
-    const messageParts = [];
-
-    if (imageData) {
-      // Add image data if provided
-      messageParts.push({
-        inlineData: {
-          mimeType: imageData.mimeType,
-          data: imageData.data
-        }
-      });
-    }
-
+    const messageParts = [...buildAttachmentParts(attachments)];
     messageParts.push({
-      text: createConsultationMessage(patientContext, userQuestion, imageData)
+      text: createConsultationMessage(patientContext, userQuestion, attachments)
     });
 
     contents.push({
@@ -133,7 +157,12 @@ const consultWithAI = async (patientContext, userQuestion, conversationHistory =
 };
 
 // Streaming version for real-time responses
-const consultWithAIStream = async (patientContext, userQuestion, conversationHistory = [], imageData = null) => {
+const consultWithAIStream = async (
+  patientContext,
+  userQuestion,
+  conversationHistory = [],
+  attachments = []
+) => {
   try {
     const model = client.getGenerativeModel({
       model: 'gemini-3-flash',
@@ -150,19 +179,9 @@ const consultWithAIStream = async (patientContext, userQuestion, conversationHis
       });
     });
 
-    const messageParts = [];
-
-    if (imageData) {
-      messageParts.push({
-        inlineData: {
-          mimeType: imageData.mimeType,
-          data: imageData.data
-        }
-      });
-    }
-
+    const messageParts = [...buildAttachmentParts(attachments)];
     messageParts.push({
-      text: createConsultationMessage(patientContext, userQuestion, imageData)
+      text: createConsultationMessage(patientContext, userQuestion, attachments)
     });
 
     contents.push({
@@ -201,15 +220,18 @@ Respond ONLY with valid JSON array like: ["Question 1?", "Question 2?", "Questio
     // Extract JSON array from response
     const jsonMatch = content.match(/\[.*\]/s);
     if (jsonMatch) {
+      const parsedSuggestions = JSON.parse(jsonMatch[0]);
       return {
         success: true,
-        suggestions: JSON.parse(jsonMatch[0])
+        suggestions: Array.isArray(parsedSuggestions) && parsedSuggestions.length > 0
+          ? parsedSuggestions
+          : DEFAULT_SUGGESTIONS
       };
     }
-    return { success: false, suggestions: [] };
+    return { success: true, suggestions: DEFAULT_SUGGESTIONS };
   } catch (error) {
     console.error('Error generating suggestions:', error);
-    return { success: false, suggestions: [] };
+    return { success: true, suggestions: DEFAULT_SUGGESTIONS };
   }
 };
 
@@ -269,5 +291,6 @@ module.exports = {
   consultWithAIStream,
   generateSuggestions,
   analyzeSymptomImage,
-  CLINICAL_SYSTEM_PROMPT
+  CLINICAL_SYSTEM_PROMPT,
+  DEFAULT_SUGGESTIONS
 };

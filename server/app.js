@@ -16,21 +16,49 @@ const env = require('./config/env');
 
 const app = express();
 
-// Configure multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    // Only allow image files
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'));
-    }
-  }
+
+const createUpload = ({ maxFileSize, isAllowed, errorMessage }) =>
+  multer({
+    storage,
+    limits: { fileSize: maxFileSize },
+    fileFilter: (req, file, cb) => {
+      if (isAllowed(file)) {
+        cb(null, true);
+      } else {
+        cb(new Error(errorMessage));
+      }
+    },
+  });
+
+const imageUpload = createUpload({
+  maxFileSize: 10 * 1024 * 1024,
+  isAllowed: (file) => file.mimetype.startsWith('image/'),
+  errorMessage: 'Only image files are allowed',
 });
-app.locals.upload = upload;
+
+const supportedDocumentMimeTypes = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/json',
+  'application/xml',
+  'text/xml',
+]);
+
+const aiUpload = createUpload({
+  maxFileSize: 20 * 1024 * 1024,
+  isAllowed: (file) =>
+    file.mimetype.startsWith('image/') ||
+    file.mimetype.startsWith('video/') ||
+    supportedDocumentMimeTypes.has(file.mimetype),
+  errorMessage:
+    'Supported MediGuide AI attachments are images, videos, PDFs, and text-based documents.',
+});
+
+app.locals.upload = imageUpload;
+app.locals.aiUpload = aiUpload;
 
 // Security and utility middlewares
 app.use(helmet());

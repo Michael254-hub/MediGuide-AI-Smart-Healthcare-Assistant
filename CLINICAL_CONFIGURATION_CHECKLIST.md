@@ -2,7 +2,7 @@
 
 ## Pre-Launch Verification (30 minutes)
 
-Use this checklist to ensure everything is properly configured before launching the clinical system with Gemini 3 integration.
+Use this checklist to ensure everything is properly configured before launching the clinical system with Gemini integration.
 
 ---
 
@@ -239,7 +239,7 @@ npm run dev
 
 - [ ] Open `http://localhost:5173`
 - [ ] Login with test credentials
-- [ ] See navbar with **🧠 Clinical AI** link
+- [ ] See navbar with **🧠 MediGuide AI** link
 - [ ] Click link → navigate to `/clinical` page
 - [ ] Page loads without 404 error
 
@@ -266,15 +266,15 @@ npm run dev
   - [ ] Reference ranges shown
   - [ ] Some results highlighted (abnormal)
 
-#### Test AI Consultation
+#### Test MediGuide Chat
 
-- [ ] Click **AI Consultation Tab**
+- [ ] Click **MediGuide Chat Tab**
 - [ ] Message input field visible
 - [ ] Suggested questions appear in sidebar
 - [ ] Type test question: "What is the BMI status?"
 - [ ] Submit message
-- [ ] **Watch server logs** for Anthropic API call
-  - [ ] Should see message: "Consulting with Claude..."
+- [ ] **Watch server logs** for Gemini API call
+  - [ ] Should see message: "Consulting with MediGuide AI..."
   - [ ] Should see response streaming in
 - [ ] Response appears in chat
 - [ ] Message preserves conversation history
@@ -288,7 +288,7 @@ npm run dev
 
 #### Test Missing API Key
 
-- [ ] Temporarily remove `ANTHROPIC_API_KEY` from `.env`
+- [ ] Temporarily remove `GEMINI_API_KEY` from `.env`
 - [ ] Try to send message
 - [ ] Should see error message in UI
 - [ ] Should NOT crash the application
@@ -385,7 +385,7 @@ Before considering the system "launch ready":
 - [ ] Supabase connection confirmed
 - [ ] All 7 clinical endpoints accessible
 - [ ] JWT middleware protecting routes
-- [ ] Anthropic API key configured
+- [ ] Gemini API key configured
 - [ ] Rate limiting in place
 - [ ] Error handling functional
 
@@ -394,7 +394,7 @@ Before considering the system "launch ready":
 - [ ] `npm run dev` starts successfully
 - [ ] All pages load without 404 errors
 - [ ] ClinicalDashboard component mounts
-- [ ] Navbar shows "Clinical AI" link
+- [ ] Navbar shows "MediGuide AI" link
 - [ ] All 5 tabs render properly
 - [ ] Zustand auth store working
 - [ ] API interceptors attaching tokens
@@ -421,7 +421,7 @@ Before considering the system "launch ready":
 
 | Issue                         | Check                | Solution                         |
 | ----------------------------- | -------------------- | -------------------------------- |
-| "API key not found"           | `server/.env`        | Add ANTHROPIC_API_KEY            |
+| "API key not found"           | `server/.env`        | Add GEMINI_API_KEY               |
 | "Supabase connection failed"  | Database config      | Verify SUPABASE_URL, credentials |
 | "401 Unauthorized"            | Browser localStorage | Log out and log back in          |
 | "Cannot find module"          | Install dependencies | Run `npm install`                |

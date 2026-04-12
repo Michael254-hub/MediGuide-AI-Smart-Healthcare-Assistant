@@ -5,7 +5,7 @@
 A **production-ready AI-powered clinical decision support system** with:
 
 - ✅ **Multi-tab Clinical Dashboard** with real-time data visualization
-- ✅ **AI-Powered Consultation** powered by Google Gemini 3 Flash
+- ✅ **AI-Powered Consultation** powered by Google Gemini Flash
 - ✅ **Voice Input** - Describe symptoms naturally via speech-to-text
 - ✅ **Image Upload** - Add visual symptom documentation
 - ✅ **Differential Diagnosis Engine** with probability scoring
@@ -57,7 +57,7 @@ npm run dev
    - Use **Voice Input** to describe symptoms
    - Upload **Images** of visible symptoms
    - Combine text, voice, and images for rich symptom input
-5. Click the **🧠 Clinical AI** link in the navbar to explore the clinical dashboard
+5. Click the **🧠 MediGuide AI** link in the navbar to explore the clinical dashboard
 
 ## 📊 System Overview
 
@@ -77,7 +77,7 @@ npm run dev
 │                                                                │
 │  ┌──────────────────────────────────────────────────────────┐ │
 │  │  Route: /api/v1/clinical/*  & /api/v1/symptoms/*        │ │
-│  │  Controllers → Services → Google Gemini 3 API           │ │
+│  │  Controllers → Services → Google Gemini API           │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │                                                                │
 │  Services:                                                     │
@@ -89,7 +89,7 @@ npm run dev
                        │
         ┌──────────────┼──────────────┐
         ↓              ↓              ↓
-    Supabase    Google Gemini 3  Mock Data
+    Supabase    Google Gemini  Mock Data
     (Database)  (Flash Model)    (Development)
 ```
 
@@ -104,7 +104,7 @@ mediguide-ai-healthcare-assistant/
 │   ├── services/
 │   │   └── api.js                         (JWT auto-injection)
 │   └── components/
-│       └── Navbar.jsx                     (Added "Clinical AI" link)
+│       └── Navbar.jsx                     (Added "MediGuide AI" link)
 │
 ├── server/
 │   ├── routes/
@@ -115,7 +115,7 @@ mediguide-ai-healthcare-assistant/
 │   │   └── symptomController.js           ✨ Symptom submission handlers
 │   ├── services/
 │   │   ├── clinicalDataService.js         ✨ Patient data + context
-│   │   └── aiConsultationService.js       ✨ Google Gemini 3 integration
+│   │   └── aiConsultationService.js       ✨ Google Gemini integration
 │   ├── app.js                             (Updated with routes)
 │   └── .env                               (Update GEMINI_API_KEY)
 │
@@ -134,10 +134,10 @@ mediguide-ai-healthcare-assistant/
 - **Risk Assessment**: Overall risk score (0-100) with factors
 - **Action Items**: Prioritized clinical tasks
 
-### 2. AI Consultation Tab
+### 2. MediGuide Chat Tab
 
 - **Sidebar**: AI-suggested questions
-- **Chat Interface**: Real-time messages with Claude
+- **Chat Interface**: Real-time messages with MediGuide AI
 - **Context**: Full patient data automatically included
 - **Token Usage**: Shows API consumption per message
 
@@ -181,7 +181,7 @@ User: "Should we adjust diabetes treatment?"
   ↓
 System: Injected full patient context
   ↓
-Claude 3.5: Analyzes data against clinical guidelines
+Google Gemini: Analyzes data against clinical guidelines
   ↓
 Response: "Based on HbA1c of 7.8%, consider adding GLP-1 RA
 because... [evidence-based reasoning]"
@@ -287,13 +287,13 @@ const patientData = await supabase
 
 ## 🚨 Common Issues & Solutions
 
-### ❌ "ANTHROPIC_API_KEY not found"
+### ❌ "GEMINI_API_KEY not found"
 
 **Solution:**
 
 ```bash
 # 1. Add to server/.env
-ANTHROPIC_API_KEY=sk-ant-your-key
+GEMINI_API_KEY=AIza-your-key
 
 # 2. Restart server
 npm run dev
@@ -306,9 +306,9 @@ npm run dev
 ```bash
 # Check server logs for:
 # 1. API key validity
-# 2. Network connectivity to api.anthropic.com
+# 2. Network connectivity to the Gemini API
 # 3. Rate limit exceeded
-# 4. Account balance
+# 4. Project quota / billing status
 ```
 
 ### ❌ "ClinicalDashboard not found"
@@ -334,7 +334,7 @@ npm run dev
 
 ## 📊 Cost Estimation
 
-Using Claude 3.5 Sonnet:
+Using Google Gemini:
 
 | Metric                        | Cost              |
 | ----------------------------- | ----------------- |
@@ -345,15 +345,15 @@ Using Claude 3.5 Sonnet:
 | **100 consultations/day**     | ~$6/day           |
 | **3,000 consultations/month** | ~$180/month       |
 
-Get pricing details: https://www.anthropic.com/pricing
+Get pricing details: https://ai.google.dev/pricing
 
 ## 🎓 Learning Resources
 
 For understanding the system:
 
-1. **Anthropic API Documentation**
-   - https://docs.anthropic.com/
-   - Model: claude-3-5-sonnet-20241022
+1. **Gemini API Documentation**
+   - https://ai.google.dev/docs
+   - Model: gemini-3-flash
 
 2. **FHIR Standard** (for EHR integration)
    - https://www.hl7.org/fhir/
@@ -368,7 +368,7 @@ For understanding the system:
 
 ### Immediate
 
-1. ✅ Obtain Anthropic API key
+1. ✅ Obtain Gemini API key
 2. ✅ Update `.env` file
 3. ✅ Start both services
 4. ✅ Test clinical dashboard
@@ -418,7 +418,7 @@ curl -H "Authorization: Bearer TOKEN" \
 
 ```bash
 # Check .env exists and has valid key
-cat server/.env | grep ANTHROPIC_API_KEY
+rg "GEMINI_API_KEY" server/.env
 ```
 
 ## 🎉 Success Checklist
@@ -428,7 +428,7 @@ cat server/.env | grep ANTHROPIC_API_KEY
 - [ ] Can log in/register
 - [ ] Can navigate to `/clinical` page
 - [ ] Dashboard tab loads patient data
-- [ ] Can send message in AI Consultation
+- [ ] Can send message in MediGuide Chat
 - [ ] AI responds with clinical guidance
 - [ ] Other tabs (Dx, Meds, Labs) work
 - [ ] Suggested questions appear on sidebar
@@ -441,7 +441,7 @@ cat server/.env | grep ANTHROPIC_API_KEY
 
 - ✨ `client/src/pages/ClinicalDashboard.jsx` - Main UI component
 - ✨ `server/services/clinicalDataService.js` - Patient data + context
-- ✨ `server/services/aiConsultationService.js` - Anthropic integration
+- ✨ `server/services/aiConsultationService.js` - Google Gemini integration
 - ✨ `server/controllers/clinicalController.js` - Route handlers
 - ✨ `server/routes/clinicalRoutes.js` - API routes
 - ✨ `CLINICAL_SYSTEM_GUIDE.md` - Full documentation
@@ -449,10 +449,10 @@ cat server/.env | grep ANTHROPIC_API_KEY
 ### Modified Files
 
 - 📝 `server/app.js` - Added clinical routes
-- 📝 `server/.env` - Added ANTHROPIC_API_KEY
-- 📝 `server/package.json` - Added @anthropic-ai/sdk
+- 📝 `server/.env` - Added GEMINI_API_KEY
+- 📝 `server/package.json` - Added @google/generative-ai
 - 📝 `client/src/App.jsx` - Added clinical route + import
-- 📝 `client/src/components/Navbar.jsx` - Added Clinical AI link
+- 📝 `client/src/components/Navbar.jsx` - Added MediGuide AI link
 
 ---
 
