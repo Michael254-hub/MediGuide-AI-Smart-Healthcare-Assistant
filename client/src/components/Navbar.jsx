@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   ChevronDown,
   CircleAlert,
+  ClipboardList,
   LogOut,
   ShieldCheck,
   UserCircle2,
@@ -43,8 +44,8 @@ const Navbar = () => {
         if (isActive) {
           setProfileState((current) => ({ ...current, loading: true }));
         }
-        const response = await patientProfileAPI.getProfile();
-        const details = response.data.data || null;
+        const profileResponse = await patientProfileAPI.getProfile();
+        const details = profileResponse.data.data || null;
         if (isActive) {
           setProfileState({
             loading: false,
@@ -105,6 +106,11 @@ const Navbar = () => {
   const handleEditProfile = () => {
     setIsProfileOpen(false);
     navigate("/submit", { state: { editProfile: true } });
+  };
+
+  const handleViewAssessmentHistory = () => {
+    setIsProfileOpen(false);
+    navigate("/dashboard");
   };
 
   return (
@@ -266,6 +272,36 @@ const Navbar = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {user?.role !== "admin" && verified && (
+                  <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700">
+                        <ClipboardList className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">Assessment history</h4>
+                        <p className="text-xs text-slate-500">
+                          Past assessments, timestamps, and key clinical responses.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleViewAssessmentHistory}
+                      className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="text-sm font-semibold text-slate-900">
+                        View assessment history
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Open the full record of all past assessments, timestamps,
+                        key clinical questions, and patient responses.
+                      </div>
+                    </button>
                   </div>
                 )}
 

@@ -3,6 +3,23 @@ const { classifyRisk } = require('../utils/riskClassifier');
 const patientProfileService = require('./patientProfileService');
 
 class TriageService {
+  buildAssessmentQuestionResponses(submission) {
+    return [
+      {
+        question: 'What symptoms are you experiencing?',
+        response: submission.symptoms,
+      },
+      {
+        question: 'How long have you had these symptoms?',
+        response: submission.duration,
+      },
+      {
+        question: 'How severe are your symptoms?',
+        response: submission.severity,
+      },
+    ];
+  }
+
   async processSubmission(userId, submissionData) {
     await patientProfileService.assertProfileComplete(userId);
 
@@ -43,9 +60,25 @@ class TriageService {
     for (const sub of submissions) {
       const log = await symptomRepository.getTriageLogBySubmissionId(sub.id);
       if (log) {
+        const submittedAt = sub.submitted_at;
+        const assessedAt = log.created_at;
+        const questionResponses = this.buildAssessmentQuestionResponses(sub);
+
         history.push({
-          submission: sub,
-          triageLog: log
+          id: sub.id,
+          submittedAt,
+          assessedAt,
+          questionResponses,
+          submission: {
+            ...sub,
+            submittedAt,
+          },
+          triageLog: {
+            ...log,
+            riskLevel: log.risk_level,
+            flaggedEmergency: log.flagged_emergency,
+            createdAt: assessedAt,
+          },
         });
       }
     }

@@ -56,8 +56,8 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-med-dark tracking-tight">Your Health Dashboard</h1>
-          <p className="text-med-muted mt-1">Review your past symptom assessments and risk levels.</p>
+          <h1 className="text-3xl font-bold text-med-dark tracking-tight">Assessment History</h1>
+          <p className="text-med-muted mt-1">Review the full record of your past assessments, timestamps, and key clinical responses.</p>
         </div>
         <Link 
           to="/submit" 
@@ -83,43 +83,49 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-med-dark mb-4 border-b pb-2">Recent Assessments</h2>
+          <h2 className="text-xl font-bold text-med-dark mb-4 border-b pb-2">All Assessments</h2>
           {history.map((record) => (
-            <div key={record.submission._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div key={record.id || record.submission?.id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-slate-50">
-                <div className="flex items-center gap-3 text-slate-500">
-                  <Clock className="w-5 h-5 text-med-primary" />
-                  <span className="font-medium">{formatDate(record.submission.submittedAt)}</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-slate-500">
+                    <Clock className="w-5 h-5 text-med-primary" />
+                    <span className="font-medium">Submitted: {formatDate(record.submittedAt || record.submission?.submittedAt || record.submission?.submitted_at)}</span>
+                  </div>
+                  {record.assessedAt && (
+                    <div className="text-sm text-slate-400">
+                      Assessed: {formatDate(record.assessedAt)}
+                    </div>
+                  )}
                 </div>
-                <div className={`px-4 py-1.5 rounded-full border text-sm font-bold uppercase tracking-wider inline-flex items-center w-max ${getRiskColor(record.triageLog.riskLevel)}`}>
-                  {record.triageLog.riskLevel} RISK
+                <div className={`px-4 py-1.5 rounded-full border text-sm font-bold uppercase tracking-wider inline-flex items-center w-max ${getRiskColor(record.triageLog.riskLevel || record.triageLog.risk_level)}`}>
+                  {(record.triageLog.riskLevel || record.triageLog.risk_level)} RISK
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Symptoms Reported</h4>
-                  <p className="text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100 italic">
-                    "{record.submission.symptoms}"
-                  </p>
-                  <div className="mt-4 flex gap-4 text-sm">
-                    <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 text-slate-600">
-                      <span className="font-medium text-slate-400 mr-2">Duration:</span>
-                      {record.submission.duration}
-                    </div>
-                    <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 text-slate-600 capitalize">
-                      <span className="font-medium text-slate-400 mr-2">Severity:</span>
-                      {record.submission.severity}
-                    </div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Clinical Questions and Responses</h4>
+                  <div className="space-y-4">
+                    {(record.questionResponses || []).map((item, index) => (
+                      <div key={`${record.id || index}-${index}`} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                          {item.question}
+                        </div>
+                        <p className="text-slate-700">
+                          {item.response || "No response recorded"}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">AI Guidance</h4>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Clinical Assessment Record</h4>
                   <RiskAlert 
-                    level={record.triageLog.riskLevel} 
+                    level={record.triageLog.riskLevel || record.triageLog.risk_level} 
                     recommendation={record.triageLog.recommendation}
-                    flaggedEmergency={record.triageLog.flaggedEmergency}
+                    flaggedEmergency={record.triageLog.flaggedEmergency ?? record.triageLog.flagged_emergency}
                   />
                 </div>
               </div>
