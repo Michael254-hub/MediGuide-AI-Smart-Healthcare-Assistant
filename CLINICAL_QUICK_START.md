@@ -353,7 +353,7 @@ For understanding the system:
 
 1. **Gemini API Documentation**
    - https://ai.google.dev/docs
-   - Model: gemini-3-flash
+   - Model: gemini-2.5-flash
 
 2. **FHIR Standard** (for EHR integration)
    - https://www.hl7.org/fhir/

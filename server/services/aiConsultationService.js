@@ -4,8 +4,10 @@
  */
 
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
+const env = require('../config/env');
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const GEMINI_MODEL = env.geminiModel;
 const DEFAULT_SUGGESTIONS = [
   "What findings in this patient suggest the highest immediate risk?",
   "What differential diagnoses should we prioritize based on the current data?",
@@ -62,6 +64,12 @@ const buildAttachmentParts = (attachments = []) =>
     },
   }));
 
+const createModel = (options = {}) =>
+  client.getGenerativeModel({
+    model: GEMINI_MODEL,
+    ...options,
+  });
+
 const createConsultationMessage = (patientContext, userQuestion, attachments = []) => {
   let message = `Patient Context:
 ${patientContext}
@@ -88,8 +96,7 @@ const consultWithAI = async (
   attachments = []
 ) => {
   try {
-    const model = client.getGenerativeModel({
-      model: 'gemini-3-flash',
+    const model = createModel({
       systemInstruction: CLINICAL_SYSTEM_PROMPT,
       safetySettings: [
         {
@@ -164,8 +171,7 @@ const consultWithAIStream = async (
   attachments = []
 ) => {
   try {
-    const model = client.getGenerativeModel({
-      model: 'gemini-3-flash',
+    const model = createModel({
       systemInstruction: CLINICAL_SYSTEM_PROMPT,
     });
 
@@ -202,9 +208,7 @@ const consultWithAIStream = async (
 
 // Generate quick suggestions based on patient data
 const generateSuggestions = async (patientContext) => {
-  const model = client.getGenerativeModel({
-    model: 'gemini-3-flash',
-  });
+  const model = createModel();
 
   const suggestionPrompt = `Based on this patient's data, suggest 3-4 specific clinical questions a physician might ask for decision support. Format as a JSON array of strings, each being a natural language question.
 
@@ -237,9 +241,7 @@ Respond ONLY with valid JSON array like: ["Question 1?", "Question 2?", "Questio
 
 // Process image for symptom analysis
 const analyzeSymptomImage = async (imageData, symptomDescription) => {
-  const model = client.getGenerativeModel({
-    model: 'gemini-3-flash',
-  });
+  const model = createModel();
 
   const analysisPrompt = `Analyze this medical image in the context of the following symptom description. Provide clinical observations about what is visible.
 

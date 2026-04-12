@@ -197,7 +197,7 @@ Visit: `http://localhost:5173`
 
 ### Google Gemini Flash Model
 
-**Model ID:** `gemini-3-flash`
+**Model ID:** `gemini-2.5-flash`
 
 **Capabilities:**
 

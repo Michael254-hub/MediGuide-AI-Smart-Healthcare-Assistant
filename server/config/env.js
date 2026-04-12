@@ -56,6 +56,7 @@ const env = {
   smsWebhookUrl: process.env.SMS_WEBHOOK_URL || '',
   smsWebhookAuthHeader: process.env.SMS_WEBHOOK_AUTH_HEADER || '',
   smsWebhookAuthToken: process.env.SMS_WEBHOOK_AUTH_TOKEN || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
 };
 
 // PRODUCTION VALIDATION
