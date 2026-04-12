@@ -15,6 +15,7 @@ const patientProfileRoutes = require('./routes/patientProfileRoutes');
 const env = require('./config/env');
 
 const app = express();
+const allowedOrigins = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
 
 const storage = multer.memoryStorage();
 
@@ -62,13 +63,27 @@ app.locals.aiUpload = aiUpload;
 
 // Security and utility middlewares
 app.use(helmet());
-app.use(cors({ 
-  origin: Array.isArray(env.corsOrigin) ? env.corsOrigin : env.corsOrigin,
-  // origin: "https://mediguide-ai-healthcare-assistant.vercel.app/",
-  // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  // allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow same-origin/server-to-server requests that don't send an Origin header.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Verification-Token'],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
