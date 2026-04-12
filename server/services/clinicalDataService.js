@@ -210,12 +210,90 @@ const generateMockPatientData = (userId) => {
   };
 };
 
+const mergeProfileIntoClinicalData = (clinicalData, user, profileResponse) => {
+  if (!profileResponse?.exists) {
+    return clinicalData;
+  }
+
+  return {
+    ...clinicalData,
+    patient: {
+      ...clinicalData.patient,
+      id: user.id,
+      name: user.name || clinicalData.patient.name,
+      age: profileResponse.demographics.age,
+      sex: profileResponse.demographics.sexAtBirth,
+      sexAtBirth: profileResponse.demographics.sexAtBirth,
+      genderIdentity: profileResponse.demographics.genderIdentity,
+      dataSource: profileResponse.demographics.dataSource,
+      confidenceScore: profileResponse.demographics.confidenceScore,
+      profileComplete: profileResponse.profileComplete,
+    },
+    medications: profileResponse.medications.map((medication) => ({
+      name: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      indication: medication.indication,
+      route: medication.route,
+      interactions: [],
+      startDate: medication.startDate,
+      isCurrent: medication.isCurrent,
+      category: medication.category,
+      dataSource: medication.dataSource,
+      confidenceScore: medication.confidenceScore,
+      recordedAt: medication.recordedAt,
+    })),
+    allergies: profileResponse.allergies.map((allergy) => ({
+      substance: allergy.substance,
+      reactionType: allergy.reactionType,
+      severity: allergy.severity,
+      category: allergy.category,
+      manifestations: allergy.manifestations,
+      dataSource: allergy.dataSource,
+      confidenceScore: allergy.confidenceScore,
+      recordedAt: allergy.recordedAt,
+    })),
+    provenance: {
+      demographics: {
+        source: profileResponse.demographics.dataSource,
+        confidenceScore: profileResponse.demographics.confidenceScore,
+        recordedAt: profileResponse.demographics.recordedAt,
+      },
+      medications: profileResponse.medications.map((medication) => ({
+        name: medication.name,
+        source: medication.dataSource,
+        confidenceScore: medication.confidenceScore,
+        recordedAt: medication.recordedAt,
+      })),
+      allergies: profileResponse.allergies.map((allergy) => ({
+        substance: allergy.substance,
+        source: allergy.dataSource,
+        confidenceScore: allergy.confidenceScore,
+        recordedAt: allergy.recordedAt,
+      })),
+    },
+    patientProfileSummary: profileResponse.profileSummary,
+    fhirBundle: profileResponse.fhirBundle,
+    deidentifiedTrainingView: profileResponse.deidentifiedTrainingView,
+  };
+};
+
 const buildClinicalContext = (patientData) => {
-  const { patient, vitals, activeProblems, medications, labResults, riskScore } = patientData;
+  const {
+    patient,
+    vitals,
+    activeProblems = [],
+    medications = [],
+    allergies = [],
+    labResults = [],
+    riskScore,
+    provenance,
+  } = patientData;
   
   return `
 PATIENT DEMOGRAPHICS:
 - Age: ${patient.age} years old, ${patient.sex}
+- Gender Identity: ${patient.genderIdentity || 'Not recorded'}
 - BMI: ${patient.bmi} kg/m²
 - Height: ${patient.height}, Weight: ${patient.weight}
 
@@ -237,6 +315,13 @@ CURRENT MEDICATIONS:
 ${medications.map(m => `- ${m.name} ${m.dosage} ${m.frequency} (for ${m.indication})`).join('\n')}
 ${medications.some(m => m.interactions.length > 0) ? '\nDrug Interactions Noted: ' + medications.filter(m => m.interactions.length > 0).map(m => m.interactions.join('; ')).join('\n') : ''}
 
+ALLERGIES / INTOLERANCES:
+${allergies.length > 0 ? allergies.map(a => `- ${a.substance}: ${a.reactionType} (${a.severity})${Array.isArray(a.manifestations) && a.manifestations.length ? ` [${a.manifestations.join(', ')}]` : ''}`).join('\n') : '- None documented'}
+
+DATA PROVENANCE:
+- Demographics source: ${provenance?.demographics?.source || patient.dataSource || 'unknown'}
+- Demographics confidence: ${provenance?.demographics?.confidenceScore || patient.confidenceScore || 'unknown'}
+
 RECENT LAB RESULTS:
 ${labResults.map(l => `- ${l.test}: ${l.value} ${l.unit} (Reference: ${l.reference}) [${l.status.toUpperCase()}]`).join('\n')}
 
@@ -247,5 +332,6 @@ Patient is a ${patient.age}-year-old with multiple cardiovascular risk factors i
 
 module.exports = {
   generateMockPatientData,
+  mergeProfileIntoClinicalData,
   buildClinicalContext
 };

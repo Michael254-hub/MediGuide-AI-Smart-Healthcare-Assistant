@@ -65,9 +65,15 @@ export const authAPI = {
 
 // Symptom API methods
 export const symptomAPI = {
-  submitSymptoms: (data) => api.post('/symptoms/submit', data),
+  submitSymptoms: (data) => api.post('/symptoms', data),
   getSymptomHistory: () => api.get('/symptoms/history'),
   getSingleSymptom: (id) => api.get(`/symptoms/${id}`),
+};
+
+export const patientProfileAPI = {
+  getProfile: () => api.get('/patient-profile'),
+  saveProfile: (data) => api.put('/patient-profile', data),
+  getDeidentifiedProfile: () => api.get('/patient-profile/de-identified'),
 };
 
 // Clinical API methods

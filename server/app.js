@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const symptomRoutes = require('./routes/symptomRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const clinicalRoutes = require('./routes/clinicalRoutes');
+const patientProfileRoutes = require('./routes/patientProfileRoutes');
 const env = require('./config/env');
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/symptoms', symptomRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/clinical', clinicalRoutes);
+app.use('/api/v1/patient-profile', patientProfileRoutes);
 app.use('/api/v1/phone', phoneRoutes);
 
 // Health check endpoint

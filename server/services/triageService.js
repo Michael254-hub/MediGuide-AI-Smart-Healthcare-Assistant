@@ -1,8 +1,11 @@
 const symptomRepository = require('../repositories/symptomRepository');
 const { classifyRisk } = require('../utils/riskClassifier');
+const patientProfileService = require('./patientProfileService');
 
 class TriageService {
   async processSubmission(userId, submissionData) {
+    await patientProfileService.assertProfileComplete(userId);
+
     // 1. Save the symptom submission
     const submission = await symptomRepository.createSubmission({
       user_id: userId,

@@ -3,8 +3,24 @@
  * Handles all endpoints for the AI-powered clinical support system
  */
 
-const { generateMockPatientData, buildClinicalContext } = require('../services/clinicalDataService');
+const {
+  generateMockPatientData,
+  mergeProfileIntoClinicalData,
+  buildClinicalContext,
+} = require('../services/clinicalDataService');
 const { consultWithAI, generateSuggestions } = require('../services/aiConsultationService');
+const patientProfileService = require('../services/patientProfileService');
+const { getRequestContext } = require('../utils/requestContext');
+
+const getClinicalDataForUser = async (user, req, auditAction = 'READ') => {
+  const baseClinicalData = generateMockPatientData(user.id);
+  const profile = await patientProfileService.getProfile(user, getRequestContext(req), {
+    auditAction,
+    resourceType: 'cdss_profile_bundle',
+  });
+
+  return mergeProfileIntoClinicalData(baseClinicalData, user, profile);
+};
 
 /**
  * GET /api/v1/clinical/patient-data
@@ -12,10 +28,7 @@ const { consultWithAI, generateSuggestions } = require('../services/aiConsultati
  */
 const getPatientData = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    
-    // In production, this would fetch from EHR via FHIR APIs
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     
     res.status(200).json({
       success: true,
@@ -32,7 +45,6 @@ const getPatientData = async (req, res, next) => {
  */
 const getAIConsultation = async (req, res, next) => {
   try {
-    const userId = req.user.id;
     const { question, conversationHistory = [] } = req.body;
 
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
@@ -42,8 +54,7 @@ const getAIConsultation = async (req, res, next) => {
       });
     }
 
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const clinicalContext = buildClinicalContext(patientData);
 
     // Get AI consultation
@@ -79,7 +90,6 @@ const getAIConsultation = async (req, res, next) => {
  */
 const getAIConsultationStream = async (req, res, next) => {
   try {
-    const userId = req.user.id;
     const { question, conversationHistory = [] } = req.body;
 
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
@@ -94,8 +104,7 @@ const getAIConsultationStream = async (req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const clinicalContext = buildClinicalContext(patientData);
 
     // Import streaming service
@@ -139,10 +148,7 @@ const getAIConsultationStream = async (req, res, next) => {
  */
 const getSuggestions = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const clinicalContext = buildClinicalContext(patientData);
 
     // Generate suggestions
@@ -172,10 +178,7 @@ const getSuggestions = async (req, res, next) => {
  */
 const getDifferentialDiagnosis = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const { differentialDiagnoses } = patientData;
 
     res.status(200).json({
@@ -195,10 +198,7 @@ const getDifferentialDiagnosis = async (req, res, next) => {
  */
 const getMedications = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const { medications } = patientData;
 
     res.status(200).json({
@@ -218,10 +218,7 @@ const getMedications = async (req, res, next) => {
  */
 const getLabResults = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
-    // Get patient data
-    const patientData = generateMockPatientData(userId);
+    const patientData = await getClinicalDataForUser(req.user, req);
     const { labResults } = patientData;
 
     res.status(200).json({
