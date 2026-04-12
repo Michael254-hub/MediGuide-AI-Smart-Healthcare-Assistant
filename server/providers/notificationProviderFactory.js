@@ -6,11 +6,14 @@ const ConsoleSmsProvider = require('./sms/consoleSmsProvider');
 const WebhookSmsProvider = require('./sms/webhookSmsProvider');
 const AfricasTalkingSmsProvider = require('./sms/africasTalkingSmsProvider');
 
+let emailProviderInstance;
+let smsProviderInstance;
+
 const buildEmailProvider = () => {
   const isProduction = process.env.NODE_ENV === 'production';
+  const emailProviderMode = env.emailProvider || 'auto';
 
-  // Priority: nodemailer > resend > console (dev only)
-  if (env.emailProvider === 'nodemailer' || env.nodemailerHost) {
+  if (emailProviderMode === 'nodemailer' || (emailProviderMode === 'auto' && env.nodemailerHost)) {
     if (!env.nodemailerHost || !env.nodemailerUser || !env.nodemailerPassword) {
       if (isProduction) {
         throw new Error(
@@ -42,8 +45,23 @@ const buildEmailProvider = () => {
     return nodemailerProvider;
   }
 
-  if (env.resendApiKey && env.resendFromEmail) {
+  if (emailProviderMode === 'resend' || (emailProviderMode === 'auto' && env.resendApiKey && env.resendFromEmail)) {
+    if (!env.resendApiKey || !env.resendFromEmail) {
+      if (isProduction) {
+        throw new Error(
+          'FATAL: Resend selected but configuration is incomplete. ' +
+          'In production, you MUST configure RESEND_API_KEY and RESEND_FROM_EMAIL in .env'
+        );
+      }
+      console.warn('[Warning] Resend selected but missing API key or sender address. Falling back to console for development.');
+      return new ConsoleEmailProvider();
+    }
+
     return new ResendEmailProvider();
+  }
+
+  if (emailProviderMode === 'console' && !isProduction) {
+    return new ConsoleEmailProvider();
   }
 
   // PRODUCTION SAFETY: Never use console in production
@@ -62,15 +80,41 @@ const buildEmailProvider = () => {
 
 const buildSmsProvider = () => {
   const isProduction = process.env.NODE_ENV === 'production';
+  const smsProviderMode = env.smsProvider || 'auto';
 
-  // Priority: Africa's Talking > webhook > console (dev only)
-  if (process.env.AT_API_KEY) {
+  if (smsProviderMode === 'africas-talking' || (smsProviderMode === 'auto' && process.env.AT_API_KEY)) {
+    if (!env.atApiKey) {
+      if (isProduction) {
+        throw new Error(
+          'FATAL: Africa\'s Talking selected but AT_API_KEY is missing. ' +
+          'In production, configure AT_API_KEY and AT_USERNAME in .env'
+        );
+      }
+      console.warn('[Warning] Africa\'s Talking selected but missing API key. Falling back to console for development.');
+      return new ConsoleSmsProvider();
+    }
+
     console.log('[AfricasTalkingSmsProvider] SMS provider configured for Africa\'s Talking');
     return new AfricasTalkingSmsProvider();
   }
 
-  if (env.smsProvider === 'webhook' && env.smsWebhookUrl) {
+  if (smsProviderMode === 'webhook' || (smsProviderMode === 'auto' && env.smsWebhookUrl)) {
+    if (!env.smsWebhookUrl) {
+      if (isProduction) {
+        throw new Error(
+          'FATAL: Webhook SMS provider selected but SMS_WEBHOOK_URL is missing. ' +
+          'In production, configure SMS_PROVIDER=webhook and SMS_WEBHOOK_URL in .env'
+        );
+      }
+      console.warn('[Warning] Webhook SMS selected but URL is missing. Falling back to console for development.');
+      return new ConsoleSmsProvider();
+    }
+
     return new WebhookSmsProvider();
+  }
+
+  if (smsProviderMode === 'console' && !isProduction) {
+    return new ConsoleSmsProvider();
   }
 
   // PRODUCTION SAFETY: Never use console in production
@@ -87,7 +131,29 @@ const buildSmsProvider = () => {
   return new ConsoleSmsProvider();
 };
 
+const getEmailProvider = () => {
+  if (!emailProviderInstance) {
+    emailProviderInstance = buildEmailProvider();
+  }
+
+  return emailProviderInstance;
+};
+
+const getSmsProvider = () => {
+  if (!smsProviderInstance) {
+    smsProviderInstance = buildSmsProvider();
+  }
+
+  return smsProviderInstance;
+};
+
 module.exports = {
-  emailProvider: buildEmailProvider(),
-  smsProvider: buildSmsProvider(),
+  getEmailProvider,
+  getSmsProvider,
+  get emailProvider() {
+    return getEmailProvider();
+  },
+  get smsProvider() {
+    return getSmsProvider();
+  },
 };

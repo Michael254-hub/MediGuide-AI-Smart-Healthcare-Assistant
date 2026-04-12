@@ -3,7 +3,7 @@ const env = require('../config/env');
 const AppError = require('../errors/AppError');
 const userRepository = require('../repositories/userRepository');
 const verificationChallengeRepository = require('../repositories/verificationChallengeRepository');
-const { emailProvider, smsProvider } = require('../providers/notificationProviderFactory');
+const notificationProviders = require('../providers/notificationProviderFactory');
 const { getPendingContact, maskContactValue } = require('../utils/contact');
 const { generateVerificationSessionToken } = require('../utils/verificationSession');
 
@@ -31,7 +31,9 @@ class VerificationService {
   }
 
   getNotificationProvider(channel) {
-    return channel === 'email' ? emailProvider : smsProvider;
+    return channel === 'email'
+      ? notificationProviders.getEmailProvider()
+      : notificationProviders.getSmsProvider();
   }
 
   buildPendingVerificationPayload(user, challenge, options = {}) {

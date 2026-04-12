@@ -6,6 +6,17 @@ const notFound = (req, res, next) => {
 
 const errorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
+
+  if (statusCode >= 500) {
+    console.error('[API ERROR]', {
+      message: err.message,
+      code: err.code || null,
+      path: req.originalUrl,
+      method: req.method,
+      stack: err.stack,
+    });
+  }
+
   res.status(statusCode);
   res.json({
     success: false,

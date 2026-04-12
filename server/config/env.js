@@ -48,7 +48,7 @@ const env = {
   // Use nodemailer for SMTP or Resend for managed email service
   resendApiKey: process.env.RESEND_API_KEY || '',
   resendFromEmail: process.env.RESEND_FROM_EMAIL || '',
-  emailProvider: process.env.EMAIL_PROVIDER || 'nodemailer', // 'console' (dev only), 'resend', or 'nodemailer'
+  emailProvider: process.env.EMAIL_PROVIDER || 'auto', // 'auto', 'console' (dev only), 'resend', or 'nodemailer'
   nodemailerHost: process.env.NODEMAILER_HOST || '',
   nodemailerPort: Number(process.env.NODEMAILER_PORT || 587),
   nodemailerUser: process.env.NODEMAILER_USER || '',
@@ -59,7 +59,7 @@ const env = {
   // SMS PROVIDER CONFIGURATION
   // PRODUCTION REQUIREMENT: SMS provider is REQUIRED for phone verification
   // Primary: Africa's Talking | Fallback: webhook | Dev: console
-  smsProvider: process.env.SMS_PROVIDER || 'console', // 'africas-talking', 'webhook', or 'console' (dev only)
+  smsProvider: process.env.SMS_PROVIDER || 'auto', // 'auto', 'africas-talking', 'webhook', or 'console' (dev only)
   smsSenderId: process.env.SMS_SENDER_ID || 'MediGuide',
 
   // Africa's Talking
