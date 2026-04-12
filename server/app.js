@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
+const AppError = require('./errors/AppError');
 const phoneRoutes = require('./modules/phone/phone.routes');
 
 const authRoutes = require('./routes/authRoutes');
@@ -16,6 +17,28 @@ const env = require('./config/env');
 
 const app = express();
 const allowedOrigins = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
+const escapeRegex = (value) => value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
+const matchesAllowedOrigin = (origin) =>
+  allowedOrigins.some((allowedOrigin) => {
+    if (!allowedOrigin) {
+      return false;
+    }
+
+    if (allowedOrigin === origin) {
+      return true;
+    }
+
+    if (!allowedOrigin.includes('*')) {
+      return false;
+    }
+
+    const wildcardPattern = `^${allowedOrigin
+      .split('*')
+      .map(escapeRegex)
+      .join('.*')}$`;
+
+    return new RegExp(wildcardPattern).test(origin);
+  });
 
 const storage = multer.memoryStorage();
 
@@ -72,12 +95,20 @@ app.use(
         return;
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (matchesAllowedOrigin(origin)) {
         callback(null, true);
         return;
       }
 
-      callback(new Error(`CORS blocked for origin: ${origin}`));
+      callback(
+        new AppError('Origin is not allowed by CORS policy.', 403, {
+          code: 'CORS_ORIGIN_BLOCKED',
+          details: {
+            origin,
+            allowedOrigins,
+          },
+        })
+      );
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Verification-Token'],
