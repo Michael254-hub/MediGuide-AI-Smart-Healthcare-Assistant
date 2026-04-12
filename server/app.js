@@ -63,7 +63,10 @@ app.locals.aiUpload = aiUpload;
 // Security and utility middlewares
 app.use(helmet());
 app.use(cors({ 
-  origin: Array.isArray(env.corsOrigin) ? env.corsOrigin : env.corsOrigin,
+  // origin: Array.isArray(env.corsOrigin) ? env.corsOrigin : env.corsOrigin,
+  origin: "https://mediguide-ai-healthcare-assistant.vercel.app/",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 app.use(express.json());
