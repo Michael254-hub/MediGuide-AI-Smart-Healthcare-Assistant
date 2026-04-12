@@ -16,7 +16,6 @@ describe('patientProfileService helper output', () => {
     id: 'profile-1',
     age_years: 37,
     sex_at_birth: 'female',
-    gender_identity: 'woman',
     data_source: 'patient-reported',
     confidence_score: 0.7,
     fhir_id: 'patient-123',

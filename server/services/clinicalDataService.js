@@ -224,7 +224,6 @@ const mergeProfileIntoClinicalData = (clinicalData, user, profileResponse) => {
       age: profileResponse.demographics.age,
       sex: profileResponse.demographics.sexAtBirth,
       sexAtBirth: profileResponse.demographics.sexAtBirth,
-      genderIdentity: profileResponse.demographics.genderIdentity,
       dataSource: profileResponse.demographics.dataSource,
       confidenceScore: profileResponse.demographics.confidenceScore,
       profileComplete: profileResponse.profileComplete,
@@ -293,7 +292,6 @@ const buildClinicalContext = (patientData) => {
   return `
 PATIENT DEMOGRAPHICS:
 - Age: ${patient.age} years old, ${patient.sex}
-- Gender Identity: ${patient.genderIdentity || 'Not recorded'}
 - BMI: ${patient.bmi} kg/m²
 - Height: ${patient.height}, Weight: ${patient.weight}
 

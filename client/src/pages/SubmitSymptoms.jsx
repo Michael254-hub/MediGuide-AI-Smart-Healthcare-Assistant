@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,17 +22,6 @@ const submitSymptomSchema = z.object({
   }),
 });
 
-const formatProfileDate = (value) =>
-  value
-    ? new Date(value).toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "Not yet saved";
-
 export default function SubmitSymptoms() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +31,7 @@ export default function SubmitSymptoms() {
   const [isRecording, setIsRecording] = useState(false);
   const [uploadedImages, setUploadedImages] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
   const imageInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const symptomsRef = useRef("");
@@ -78,6 +68,12 @@ export default function SubmitSymptoms() {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.editProfile) {
+      setIsEditingProfile(true);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -232,32 +228,7 @@ export default function SubmitSymptoms() {
           onCancelEdit={profile?.profileComplete ? () => setIsEditingProfile(false) : undefined}
           isEditing={Boolean(profile?.profileComplete && isEditingProfile)}
         />
-      ) : (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-med-dark">Patient profile ready</h2>
-              <p className="text-med-muted mt-2">
-                {profile.demographics?.age} years old, sex at birth{" "}
-                <span className="capitalize">{profile.demographics?.sexAtBirth}</span>, gender identity{" "}
-                {profile.demographics?.genderIdentity}.
-              </p>
-              <p className="text-sm text-slate-500 mt-2">
-                {profile.profileSummary?.medicationCount || 0} medication entries,{" "}
-                {profile.profileSummary?.allergyCount || 0} allergy/intolerance entries.
-                Last updated {formatProfileDate(profile.updatedAt)}.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsEditingProfile(true)}
-              className="px-5 py-3 rounded-full border border-slate-300 text-slate-700 font-medium"
-            >
-              Update profile
-            </button>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {profile?.profileComplete && !isEditingProfile && (
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">

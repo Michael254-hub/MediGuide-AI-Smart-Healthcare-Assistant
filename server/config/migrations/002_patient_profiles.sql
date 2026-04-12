@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     age_years           INTEGER      CHECK (age_years >= 0 AND age_years <= 120),
     date_of_birth       DATE,
     sex_at_birth        VARCHAR(20)  CHECK (sex_at_birth IN ('male','female','intersex','unknown')),
-    gender_identity     VARCHAR(50),
 
     -- Data Provenance (confidence scoring)
     data_source         VARCHAR(50)  DEFAULT 'patient-reported',

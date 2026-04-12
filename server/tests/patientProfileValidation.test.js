@@ -6,7 +6,6 @@ describe('patientProfileSchema', () => {
       demographics: {
         age: 34,
         sexAtBirth: 'female',
-        genderIdentity: 'woman',
         dataSource: 'patient-reported',
       },
       medications: [],
@@ -36,7 +35,6 @@ describe('patientProfileSchema', () => {
       demographics: {
         age: 52,
         sexAtBirth: 'male',
-        genderIdentity: 'man',
         dataSource: 'patient-reported',
       },
       medications: [

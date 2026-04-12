@@ -37,7 +37,6 @@ const optionalDateTimeSchema = z
 const demographicsSchema = z.object({
   age: z.coerce.number().int().min(0).max(120),
   sexAtBirth: z.enum(['male', 'female', 'intersex', 'unknown']),
-  genderIdentity: z.string().trim().min(1, 'Gender identity is required').max(100),
   dataSource: provenanceSourceSchema.default('patient-reported'),
   recordedAt: optionalDateTimeSchema,
 });

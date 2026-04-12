@@ -19,7 +19,6 @@ const schema = z
     demographics: z.object({
       age: z.coerce.number().int().min(0).max(120),
       sexAtBirth: z.enum(["male", "female", "intersex", "unknown"]),
-      genderIdentity: z.string().trim().min(1, "Gender identity is required"),
       dataSource: z.enum(sources),
       recordedAt: z.string().optional(),
     }),
@@ -107,7 +106,6 @@ const toValues = (profile) => ({
   demographics: {
     age: profile?.demographics?.age ?? "",
     sexAtBirth: profile?.demographics?.sexAtBirth ?? "unknown",
-    genderIdentity: profile?.demographics?.genderIdentity ?? "",
     dataSource: profile?.demographics?.dataSource ?? "patient-reported",
     recordedAt: profile?.demographics?.recordedAt ?? "",
   },
@@ -193,6 +191,7 @@ export default function PatientProfileIntake({ initialProfile, onSaved, onCancel
         attestations: values.attestations,
       };
       const response = await patientProfileAPI.saveProfile(payload);
+      window.dispatchEvent(new CustomEvent("patient-profile-updated", { detail: response.data.data }));
       onSaved?.(response.data.data);
     } catch (error) {
       setSubmitError(error.response?.data?.message || "Failed to save patient profile.");
@@ -219,7 +218,6 @@ export default function PatientProfileIntake({ initialProfile, onSaved, onCancel
           <div className="grid md:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium mb-2">Age</label><input type="number" min="0" max="120" {...register("demographics.age")} className="w-full rounded-2xl border border-slate-300 px-4 py-3" /><FieldError error={errors.demographics?.age?.message} /></div>
             <div><label className="block text-sm font-medium mb-2">Sex at birth</label><select {...register("demographics.sexAtBirth")} className="w-full rounded-2xl border border-slate-300 px-4 py-3"><option value="unknown">Unknown</option><option value="male">Male</option><option value="female">Female</option><option value="intersex">Intersex</option></select></div>
-            <div><label className="block text-sm font-medium mb-2">Gender identity</label><input type="text" {...register("demographics.genderIdentity")} className="w-full rounded-2xl border border-slate-300 px-4 py-3" /><FieldError error={errors.demographics?.genderIdentity?.message} /></div>
             <div><label className="block text-sm font-medium mb-2">Data source</label><select {...register("demographics.dataSource")} className="w-full rounded-2xl border border-slate-300 px-4 py-3">{sources.map((source) => <option key={source} value={source}>{source}</option>)}</select></div>
           </div>
         </section>

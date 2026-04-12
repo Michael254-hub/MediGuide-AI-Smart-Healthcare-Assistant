@@ -98,8 +98,7 @@ class PatientProfileService {
 
     const hasDemographics =
       Number.isInteger(profile.age_years) &&
-      Boolean(profile.sex_at_birth) &&
-      Boolean(profile.gender_identity);
+      Boolean(profile.sex_at_birth);
 
     if (!hasDemographics) {
       return PROFILE_COMPLETION_STEPS.NONE;
@@ -153,10 +152,6 @@ class PatientProfileService {
         {
           url: 'http://hl7.org/fhir/StructureDefinition/patient-birthSex',
           valueCode: profile.sex_at_birth,
-        },
-        {
-          url: 'http://hl7.org/fhir/StructureDefinition/individual-genderIdentity',
-          valueString: profile.gender_identity,
         },
         Number.isInteger(profile.age_years)
           ? {
@@ -322,7 +317,6 @@ class PatientProfileService {
       demographics: {
         ageBand,
         sexAtBirth: profile.sex_at_birth,
-        genderIdentity: profile.gender_identity,
       },
       medications: medications.map((medication) => ({
         category: medication.category,
@@ -384,7 +378,6 @@ class PatientProfileService {
       demographics: {
         age: profile.age_years,
         sexAtBirth: profile.sex_at_birth,
-        genderIdentity: profile.gender_identity,
         dataSource: profile.data_source,
         confidenceScore: profile.confidence_score,
         recordedAt: profile.recorded_at,
@@ -485,7 +478,6 @@ class PatientProfileService {
       user_id: user.id,
       age_years: payload.demographics.age,
       sex_at_birth: payload.demographics.sexAtBirth,
-      gender_identity: payload.demographics.genderIdentity,
       data_source: payload.demographics.dataSource,
       confidence_score: this.getConfidenceScore(payload.demographics.dataSource),
       fhir_resource_type: 'Patient',
