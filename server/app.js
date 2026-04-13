@@ -14,6 +14,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const clinicalRoutes = require('./routes/clinicalRoutes');
 const patientProfileRoutes = require('./routes/patientProfileRoutes');
 const medicalProfessionalApplicationRoutes = require('./routes/medicalProfessionalApplicationRoutes');
+const medicRoutes = require('./routes/medicRoutes');
 const env = require('./config/env');
 
 const app = express();
@@ -167,6 +168,7 @@ app.get('/', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/symptoms', symptomRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/medic', medicRoutes);
 app.use('/api/v1/clinical', clinicalRoutes);
 app.use('/api/v1/patient-profile', patientProfileRoutes);
 app.use('/api/v1/professional-applications', medicalProfessionalApplicationRoutes);

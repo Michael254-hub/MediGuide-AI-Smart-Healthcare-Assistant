@@ -38,6 +38,17 @@ const admin = (req, res, next) => {
   }
 };
 
+const medicalProfessional = (req, res, next) => {
+  if (req.user && req.user.role === 'medical_professional') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Not authorized as a medical professional',
+    });
+  }
+};
+
 const protectVerificationSession = async (req, res, next) => {
   const token = req.headers['x-verification-token'];
 
@@ -63,4 +74,4 @@ const protectVerificationSession = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin, protectVerificationSession };
+module.exports = { protect, admin, medicalProfessional, protectVerificationSession };

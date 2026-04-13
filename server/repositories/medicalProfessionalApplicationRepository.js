@@ -1,4 +1,27 @@
 const { supabase } = require('../config/supabaseClient');
+const AppError = require('../errors/AppError');
+
+const handleRepositoryError = (error) => {
+  if (!error) {
+    return;
+  }
+
+  if (error.code === 'PGRST205') {
+    throw new AppError(
+      'Medical professional applications are not available yet because the required database migration has not been applied.',
+      503,
+      {
+        code: 'PROFESSIONAL_APPLICATIONS_MIGRATION_REQUIRED',
+        details: {
+          table: 'medical_professional_applications',
+          migration: 'server/config/migrations/003_medical_professional_applications.sql',
+        },
+      }
+    );
+  }
+
+  throw error;
+};
 
 class MedicalProfessionalApplicationRepository {
   async findByUserId(userId) {
@@ -8,7 +31,7 @@ class MedicalProfessionalApplicationRepository {
       .eq('user_id', userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error && error.code !== 'PGRST116') handleRepositoryError(error);
     return data;
   }
 
@@ -19,7 +42,7 @@ class MedicalProfessionalApplicationRepository {
       .eq('id', id)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error && error.code !== 'PGRST116') handleRepositoryError(error);
     return data;
   }
 
@@ -34,7 +57,7 @@ class MedicalProfessionalApplicationRepository {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) handleRepositoryError(error);
       return data;
     }
 
@@ -44,7 +67,7 @@ class MedicalProfessionalApplicationRepository {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) handleRepositoryError(error);
     return data;
   }
 
@@ -54,7 +77,7 @@ class MedicalProfessionalApplicationRepository {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) handleRepositoryError(error);
     return data;
   }
 
@@ -66,7 +89,7 @@ class MedicalProfessionalApplicationRepository {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) handleRepositoryError(error);
     return data;
   }
 
@@ -76,7 +99,17 @@ class MedicalProfessionalApplicationRepository {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending');
 
-    if (error) throw error;
+    if (error) handleRepositoryError(error);
+    return count;
+  }
+
+  async countByStatus(status) {
+    const { count, error } = await supabase
+      .from('medical_professional_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', status);
+
+    if (error) handleRepositoryError(error);
     return count;
   }
 }

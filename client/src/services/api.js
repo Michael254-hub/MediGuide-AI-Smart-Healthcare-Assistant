@@ -81,6 +81,10 @@ export const professionalApplicationAPI = {
   submit: (data) => api.post('/professional-applications', data),
 };
 
+export const medicAPI = {
+  getWorkspace: () => api.get('/medic/workspace'),
+};
+
 // Clinical API methods
 export const clinicalAPI = {
   getPatientData: () => api.get('/clinical/patient-data'),

@@ -57,8 +57,7 @@ CREATE TABLE triage_logs (
   risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'EMERGENCY')),
   recommendation TEXT NOT NULL,
   flagged_emergency BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW(),
-  FOREIGN KEY(submission_id) REFERENCES symptom_submissions(id)
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Create tasks table

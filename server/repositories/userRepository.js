@@ -143,6 +143,16 @@ class UserRepository {
     return count;
   }
 
+  async countByRole(role) {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', role);
+
+    if (error) throw error;
+    return count;
+  }
+
   async update(id, userData) {
     const { data, error } = await supabase
       .from('users')

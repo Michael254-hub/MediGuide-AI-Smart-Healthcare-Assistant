@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Users,
   Activity,
@@ -8,9 +8,13 @@ import {
   FileCheck2,
   CheckCircle2,
   XCircle,
+  RefreshCcw,
+  UserRoundCheck,
 } from 'lucide-react';
 import api, { adminAPI } from '../services/api';
 import DashboardCard from '../components/DashboardCard';
+
+const AUTO_REFRESH_INTERVAL_MS = 15000;
 
 const roleLabels = {
   general_practitioner: 'General Practitioner',
@@ -27,31 +31,74 @@ const AdminDashboard = () => {
   const [submissions, setSubmissions] = useState([]);
   const [professionalApplications, setProfessionalApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [reviewNotesById, setReviewNotesById] = useState({});
   const [actionMessage, setActionMessage] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [activeReviewAction, setActiveReviewAction] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState('pending');
 
-  const loadAdminData = async () => {
+  const loadAdminData = async ({ silent = false } = {}) => {
     try {
-      const [statsRes, submissionsRes, professionalAppsRes] = await Promise.all([
+      if (silent) {
+        setIsRefreshing(true);
+      }
+
+      setActionError(null);
+
+      const [statsRes, submissionsRes, professionalAppsRes] = await Promise.allSettled([
         api.get('/admin/stats'),
         api.get('/admin/submissions'),
         adminAPI.getProfessionalApplications(),
       ]);
 
-      setStats(statsRes.data.data);
-      setSubmissions(submissionsRes.data.data);
-      setProfessionalApplications(professionalAppsRes.data.data);
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data.data);
+        setLastUpdatedAt(statsRes.value.data.data?.generatedAt || new Date().toISOString());
+      }
+
+      if (submissionsRes.status === 'fulfilled') {
+        setSubmissions(submissionsRes.value.data.data);
+      }
+
+      if (professionalAppsRes.status === 'fulfilled') {
+        setProfessionalApplications(professionalAppsRes.value.data.data);
+      } else {
+        setProfessionalApplications([]);
+        setActionError(
+          professionalAppsRes.reason?.response?.data?.message ||
+            'Professional applications could not be loaded for the admin queue.'
+        );
+      }
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {
+      setIsRefreshing(false);
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadAdminData();
+  }, []);
+
+  useEffect(() => {
+    const refreshData = () => {
+      if (document.visibilityState === 'visible') {
+        loadAdminData({ silent: true });
+      }
+    };
+
+    const intervalId = window.setInterval(refreshData, AUTO_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshData);
+    window.addEventListener('focus', refreshData);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshData);
+      window.removeEventListener('focus', refreshData);
+    };
   }, []);
 
   const formatDate = (dateString) => {
@@ -127,7 +174,7 @@ const AdminDashboard = () => {
           ? 'Professional application approved successfully.'
           : 'Professional application rejected successfully.'
       );
-      await loadAdminData();
+      await loadAdminData({ silent: true });
     } catch (error) {
       const validationErrors = error.response?.data?.errors;
       const message = Array.isArray(validationErrors)
@@ -148,6 +195,22 @@ const AdminDashboard = () => {
         _id: level,
         count,
       }));
+
+  const filteredProfessionalApplications = professionalApplications.filter((application) =>
+    applicationStatusFilter === 'all' ? true : application.status === applicationStatusFilter
+  );
+
+  const syncLabel = useMemo(() => {
+    if (!lastUpdatedAt) {
+      return 'Waiting for first sync';
+    }
+
+    return `Last updated ${new Date(lastUpdatedAt).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    })}`;
+  }, [lastUpdatedAt]);
 
   if (isLoading) {
     return (
@@ -170,7 +233,37 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-8 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Live statistics
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Dashboard figures refresh automatically every 15 seconds and whenever this tab comes back into focus.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
+              <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : syncLabel}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+            Workforce summary
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <MiniStat label="Approved" value={stats?.approvedProfessionalApplications || 0} tone="emerald" />
+            <MiniStat label="Pending" value={stats?.pendingProfessionalApplications || 0} tone="amber" />
+            <MiniStat label="Rejected" value={stats?.rejectedProfessionalApplications || 0} tone="rose" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-6">
         <DashboardCard
           title="Total Users"
           value={stats?.totalUsers || 0}
@@ -196,6 +289,20 @@ const AdminDashboard = () => {
           icon={<FileCheck2 className="h-6 w-6" />}
           colorClass="emerald"
           subtext="Awaiting credential review"
+        />
+        <DashboardCard
+          title="Live Professionals"
+          value={stats?.medicalProfessionalUsers || 0}
+          icon={<UserRoundCheck className="h-6 w-6" />}
+          colorClass="slate"
+          subtext="Currently approved and active"
+        />
+        <DashboardCard
+          title="Assessments 24h"
+          value={stats?.assessmentsLast24Hours || 0}
+          icon={<RefreshCcw className="h-6 w-6" />}
+          colorClass="blue"
+          subtext="Recent clinical activity"
         />
         <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="absolute left-0 top-0 h-full w-1 bg-slate-400"></div>
@@ -246,7 +353,7 @@ const AdminDashboard = () => {
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-500">
-            {professionalApplications.length} Applications
+            {filteredProfessionalApplications.length} Showing
           </span>
         </div>
 
@@ -265,8 +372,32 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        <div className="px-8 pt-6">
+          <div className="inline-flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
+            {[
+              { value: 'pending', label: 'Pending' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+              { value: 'all', label: 'All' },
+            ].map((filterOption) => (
+              <button
+                key={filterOption.value}
+                type="button"
+                onClick={() => setApplicationStatusFilter(filterOption.value)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  applicationStatusFilter === filterOption.value
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {filterOption.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-6 p-8">
-          {professionalApplications.map((application) => (
+          {filteredProfessionalApplications.map((application) => (
             <div key={application.id} className="rounded-3xl border border-slate-200 p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -415,9 +546,9 @@ const AdminDashboard = () => {
             </div>
           ))}
 
-          {professionalApplications.length === 0 && (
+          {filteredProfessionalApplications.length === 0 && (
             <div className="rounded-3xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-              No medical professional applications have been submitted yet.
+              No medical professional applications matched this view.
             </div>
           )}
         </div>
@@ -491,5 +622,20 @@ const InfoTile = ({ label, value }) => (
     <div className="mt-1 text-sm font-semibold text-slate-800">{value}</div>
   </div>
 );
+
+const MiniStat = ({ label, value, tone }) => {
+  const toneClasses = {
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    amber: 'bg-amber-50 text-amber-700 border-amber-100',
+    rose: 'bg-rose-50 text-rose-700 border-rose-100',
+  };
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${toneClasses[tone] || toneClasses.emerald}`}>
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">{label}</div>
+      <div className="mt-2 text-2xl font-bold">{value}</div>
+    </div>
+  );
+};
 
 export default AdminDashboard;

@@ -3,15 +3,32 @@ const userRepository = require('../repositories/userRepository');
 const {
   medicalProfessionalApplicationService,
 } = require('../services/medicalProfessionalApplicationService');
+const medicalProfessionalApplicationRepository = require('../repositories/medicalProfessionalApplicationRepository');
 
 const getDashboardStats = async (req, res, next) => {
   try {
-    const totalUsers = await userRepository.countAll();
-    const totalSubmissions = await symptomRepository.countSubmissions();
-    const emergencyCases = await symptomRepository.countEmergencies();
-    const riskDistribution = await symptomRepository.getRiskDistribution();
-    const pendingProfessionalApplications =
-      await medicalProfessionalApplicationService.countPendingApplications();
+    const last24HoursIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [
+      totalUsers,
+      totalSubmissions,
+      emergencyCases,
+      riskDistribution,
+      pendingProfessionalApplications,
+      approvedProfessionalApplications,
+      rejectedProfessionalApplications,
+      medicalProfessionalUsers,
+      assessmentsLast24Hours,
+    ] = await Promise.all([
+      userRepository.countAll(),
+      symptomRepository.countSubmissions(),
+      symptomRepository.countEmergencies(),
+      symptomRepository.getRiskDistribution(),
+      medicalProfessionalApplicationService.countPendingApplications(),
+      medicalProfessionalApplicationRepository.countByStatus('approved'),
+      medicalProfessionalApplicationRepository.countByStatus('rejected'),
+      userRepository.countByRole('medical_professional'),
+      symptomRepository.countSubmittedSince(last24HoursIso),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -21,6 +38,11 @@ const getDashboardStats = async (req, res, next) => {
         emergencyCases,
         riskDistribution,
         pendingProfessionalApplications,
+        approvedProfessionalApplications,
+        rejectedProfessionalApplications,
+        medicalProfessionalUsers,
+        assessmentsLast24Hours,
+        generatedAt: new Date().toISOString(),
       }
     });
   } catch (error) {

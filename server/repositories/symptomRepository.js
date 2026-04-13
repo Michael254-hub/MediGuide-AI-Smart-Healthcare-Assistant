@@ -1,4 +1,5 @@
 const { supabase } = require('../config/supabaseClient');
+const userRepository = require('./userRepository');
 
 class SymptomRepository {
   async createSubmission(submissionData) {
@@ -56,6 +57,16 @@ class SymptomRepository {
     return count;
   }
 
+  async countSubmittedSince(isoTimestamp) {
+    const { count, error } = await supabase
+      .from('symptom_submissions')
+      .select('*', { count: 'exact', head: true })
+      .gte('submitted_at', isoTimestamp);
+
+    if (error) throw error;
+    return count;
+  }
+
   async getRiskDistribution() {
     const { data, error } = await supabase
       .from('triage_logs')
@@ -71,16 +82,52 @@ class SymptomRepository {
     return distribution;
   }
 
-  async findAllLogsWithDetails() {
+  async findSubmissionsByIds(ids = []) {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
     const { data, error } = await supabase
-      .from('triage_logs')
-      .select(`
-        *,
-        submission_id(user_id(name, email))
-      `)
-      .order('created_at', { ascending: false });
+      .from('symptom_submissions')
+      .select('id, user_id, symptoms, duration, severity, submitted_at')
+      .in('id', uniqueIds);
+
     if (error) throw error;
     return data;
+  }
+
+  async findAllLogsWithDetails() {
+    const { data: logs, error } = await supabase
+      .from('triage_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    if (!logs || logs.length === 0) {
+      return [];
+    }
+
+    const submissions = await this.findSubmissionsByIds(logs.map((log) => log.submission_id));
+    const submissionMap = new Map(submissions.map((submission) => [submission.id, submission]));
+    const users = await userRepository.findManyByIds(submissions.map((submission) => submission.user_id));
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return logs.map((log) => {
+      const submission = submissionMap.get(log.submission_id);
+
+      return {
+        ...log,
+        submission_id: submission
+          ? {
+              ...submission,
+              user_id: userMap.get(submission.user_id) || null,
+            }
+          : null,
+      };
+    });
   }
 }
 

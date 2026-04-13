@@ -7,7 +7,8 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyAccount from "./pages/VerifyAccount";
 import Dashboard from "./pages/Dashboard";
 import SubmitSymptoms from "./pages/SubmitSymptoms";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminPortal from "./pages/AdminPortal";
+import MedicPortal from "./pages/MedicPortal";
 import ClinicalDashboard from "./pages/ClinicalDashboard";
 import MedicalProfessionalApplication from "./pages/MedicalProfessionalApplication";
 import PrivateRoute from "./components/PrivateRoute";
@@ -60,12 +61,9 @@ function App() {
           />
           <Route
             path="/admin"
-            element={
-              <PrivateRoute requireAdmin={true}>
-                <AdminDashboard />
-              </PrivateRoute>
-            }
+            element={<AdminPortal />}
           />
+          <Route path="/medic" element={<MedicPortal />} />
           <Route
             path="/clinical"
             element={

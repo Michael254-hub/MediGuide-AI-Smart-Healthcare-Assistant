@@ -161,39 +161,24 @@ const Navbar = () => {
       : [
           {
             to: "/dashboard",
-            label: "Assessment Dashboard",
+            label: "Assessment",
             description: "Review assessment history and follow-up actions.",
             icon: LayoutDashboard,
           },
           {
             to: "/clinical",
-            label: "MediGuide AI Workspace",
+            label: "MediChat",
             description: "Open the clinical workspace and multimodal chat.",
             icon: Brain,
           },
-          ...(user?.role !== "admin"
+          ...(user?.role !== "admin" && user?.role !== "medical_professional"
             ? [
                 {
                   to: "/professional-application",
-                  label:
-                    user?.role === "medical_professional"
-                      ? "Professional Status"
-                      : "Apply to Guide",
+                  label: "Apply to Guide",
                   description:
-                    user?.role === "medical_professional"
-                      ? "Review your approved professional role and verification details."
-                      : "Apply to provide human medical guidance when escalation is needed.",
+                    "Apply to provide human medical guidance when escalation is needed.",
                   icon: Stethoscope,
-                },
-              ]
-            : []),
-          ...(user?.role === "admin"
-            ? [
-                {
-                  to: "/admin",
-                  label: "Admin Panel",
-                  description: "Manage users, triage status, and reports.",
-                  icon: BadgeCheck,
                 },
               ]
             : []),
@@ -254,24 +239,15 @@ const Navbar = () => {
     ? verified
       ? [
           { to: "/dashboard", label: "Assessment", description: "Assessment history and follow-up details." },
-          { to: "/clinical", label: "MediGuide AI", description: "Open the AI workspace and conversation view." },
-          ...(user?.role !== "admin"
+          { to: "/clinical", label: "MediChat", description: "Open the MediChat workspace and conversation view." },
+          ...(user?.role !== "admin" && user?.role !== "medical_professional"
             ? [
                 {
                   to: "/professional-application",
-                  label:
-                    user?.role === "medical_professional"
-                      ? "Professional Status"
-                      : "Apply to Guide",
-                  description:
-                    user?.role === "medical_professional"
-                      ? "Review your approved verification status and role."
-                      : "Apply to provide human medical guidance when needed.",
+                  label: "Apply to Guide",
+                  description: "Apply to provide human medical guidance when needed.",
                 },
               ]
-            : []),
-          ...(user?.role === "admin"
-            ? [{ to: "/admin", label: "Admin Panel", description: "Manage users, reports, and triage workflows." }]
             : []),
         ]
       : [

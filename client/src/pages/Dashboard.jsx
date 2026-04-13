@@ -59,7 +59,7 @@ const Dashboard = () => {
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-med-dark sm:text-3xl">
-            Assessment History
+            Assessment
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-med-muted sm:text-base">
             Review the full record of your past assessments, timestamps, and key
@@ -74,7 +74,7 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      {user?.role !== "admin" && (
+      {user?.role !== "admin" && user?.role !== "medical_professional" && (
         <div className="mb-8 rounded-3xl border border-sky-100 bg-linear-to-r from-sky-50 via-white to-emerald-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl">
@@ -83,14 +83,10 @@ const Dashboard = () => {
                 Human Guidance Network
               </div>
               <h2 className="mt-3 text-xl font-bold text-med-dark">
-                {user?.role === "medical_professional"
-                  ? "Your professional account is active"
-                  : "Apply to provide human medical guidance"}
+                Apply to provide human medical guidance
               </h2>
               <p className="mt-2 text-sm text-slate-600 sm:text-base">
-                {user?.role === "medical_professional"
-                  ? "Review the role you were approved for and keep your verification details handy."
-                  : "Licensed clinicians can apply for specific support roles so admins can verify their credentials before approval."}
+                Licensed clinicians can apply for specific support roles so admins can verify their credentials before approval.
               </p>
             </div>
 
@@ -99,7 +95,7 @@ const Dashboard = () => {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
               <Stethoscope className="h-4 w-4" />
-              {user?.role === "medical_professional" ? "View status" : "Start application"}
+              Start application
             </Link>
           </div>
         </div>

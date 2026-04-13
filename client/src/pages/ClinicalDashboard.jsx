@@ -310,7 +310,7 @@ const ClinicalDashboard = () => {
         setError(null);
       } catch (loadError) {
         console.error("Failed to load patient data:", loadError);
-        setError("Failed to load MediGuide AI workspace. Please try again.");
+        setError("Failed to load MediChat. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -335,7 +335,7 @@ const ClinicalDashboard = () => {
       setDraftAttachments([]);
       setChatNotice("");
     } catch (loadError) {
-      console.error("Failed to load MediGuide AI conversations:", loadError);
+      console.error("Failed to load MediChat conversations:", loadError);
       const fallbackConversation = createEmptyConversation();
       setConversations([fallbackConversation]);
       setActiveConversationId(fallbackConversation.id);
@@ -456,7 +456,7 @@ const ClinicalDashboard = () => {
 
       if (selectedFiles.length !== supportedFiles.length) {
         setChatNotice(
-          "Some files were skipped. MediGuide AI currently supports images, videos, audio files, PDFs, and text-based documents."
+          "Some files were skipped. MediChat currently supports images, videos, audio files, PDFs, and text-based documents."
         );
       } else if (supportedFiles.length > remainingSlots) {
         setChatNotice(`You can attach up to ${MAX_ATTACHMENTS} files per message.`);
@@ -557,7 +557,7 @@ const ClinicalDashboard = () => {
         role: "assistant",
         content:
           requestError.response?.data?.message ||
-          "MediGuide AI could not process that request. Please try again.",
+          "MediChat could not process that request. Please try again.",
         timestamp: new Date().toISOString(),
         isError: true,
         attachments: [],
@@ -583,7 +583,7 @@ const ClinicalDashboard = () => {
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <Loader className="mx-auto mb-4 h-12 w-12 animate-spin text-med-primary" />
-          <p className="font-medium text-slate-600">Loading MediGuide AI...</p>
+          <p className="font-medium text-slate-600">Loading MediChat...</p>
         </div>
       </div>
     );
@@ -693,10 +693,10 @@ const MediGuideChatTab = ({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                MediGuide AI
+                MediChat
               </p>
               <h2 className="mt-1 truncate text-lg font-bold text-slate-900">
-                {activeConversation?.title || "MediGuide Chat"}
+                {activeConversation?.title || "MediChat"}
               </h2>
             </div>
             <button
@@ -728,7 +728,7 @@ const MediGuideChatTab = ({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                MediGuide AI
+                MediChat
               </p>
               <h2 className="mt-1 text-xl font-bold text-slate-900">Conversations</h2>
             </div>
@@ -830,7 +830,7 @@ const MediGuideChatTab = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
-                {activeConversation?.title || "MediGuide Chat"}
+                {activeConversation?.title || "MediChat"}
               </h2>
               <p className="text-xs text-slate-500 sm:text-sm">
                 Text, images, videos, audio, PDFs, and text documents in one clinical thread
@@ -860,7 +860,7 @@ const MediGuideChatTab = ({
                   >
                     <div className="flex items-center justify-between gap-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
-                        {message.role === "user" ? "You" : "MediGuide AI"}
+                        {message.role === "user" ? "You" : "MediChat"}
                       </p>
                       <p className="text-xs opacity-70">
                         {formatMessageTime(message.timestamp)}
@@ -899,7 +899,7 @@ const MediGuideChatTab = ({
                     <div className="flex items-center gap-3 text-slate-600">
                       <Loader className="h-4 w-4 animate-spin" />
                       <span className="text-sm font-medium">
-                        MediGuide AI is reviewing the latest context...
+                        MediChat is reviewing the latest context...
                       </span>
                     </div>
                   </div>
@@ -913,7 +913,7 @@ const MediGuideChatTab = ({
                   <Brain className="h-8 w-8" />
                 </div>
                 <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                  Start a richer MediGuide AI conversation
+                  Start a richer MediChat conversation
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
                   Ask by text alone, or attach images, audio clips, short videos,
@@ -970,7 +970,7 @@ const MediGuideChatTab = ({
                 </span>
               </div>
               <p className="mb-4 text-xs text-slate-500">
-                MediGuide can review these inputs and respond with text, SVG visuals,
+                MediChat can review these inputs and respond with text, SVG visuals,
                 and downloadable reports or data files.
               </p>
 
@@ -978,7 +978,7 @@ const MediGuideChatTab = ({
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
-                placeholder="Message MediGuide AI about symptoms, differential diagnosis, treatment options, or ask it to review attachments, create a visual summary, or generate a document..."
+                placeholder="Message MediChat about symptoms, differential diagnosis, treatment options, or ask it to review attachments, create a visual summary, or generate a document..."
                 disabled={isConsulting}
                 rows={4}
                 className="min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:min-h-[140px]"
