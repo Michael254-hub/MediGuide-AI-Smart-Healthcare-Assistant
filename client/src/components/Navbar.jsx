@@ -96,7 +96,7 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    if (!isMobileMenuOpen && !isMobileProfileOpen) {
+    if (!isMobileProfileOpen) {
       return undefined;
     }
 
@@ -141,6 +141,10 @@ const Navbar = () => {
   const openMobileProfile = () => {
     setIsMobileMenuOpen(false);
     setIsMobileProfileOpen(true);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   const navigationLinks = isAuthenticated
@@ -229,9 +233,27 @@ const Navbar = () => {
       )
     );
 
+  const mobileMenuLinks = isAuthenticated
+    ? verified
+      ? [
+          { to: "/dashboard", label: "Assessment", description: "Assessment history and follow-up details." },
+          { to: "/clinical", label: "MediGuide AI", description: "Open the AI workspace and conversation view." },
+          ...(user?.role === "admin"
+            ? [{ to: "/admin", label: "Admin Panel", description: "Manage users, reports, and triage workflows." }]
+            : []),
+        ]
+      : [
+          {
+            to: "/verify-account",
+            label: "Verify account",
+            description: "Complete verification before using the workspace.",
+          },
+        ]
+    : [];
+
   return (
     <>
-      <nav className="flex items-center gap-2 lg:gap-6">
+      <nav className="flex items-center gap-2">
         <div className="hidden xl:flex xl:items-center xl:gap-6">
           {renderNavigationLinks(false)}
         </div>
@@ -279,15 +301,14 @@ const Navbar = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 xl:hidden">
+            <div className="relative flex items-center gap-2 xl:hidden">
               <button
                 type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                onClick={() => setIsMobileMenuOpen((current) => !current)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                 aria-label="Open navigation menu"
               >
                 <Menu className="h-5 w-5" />
-                <span>Menu</span>
               </button>
               <button
                 type="button"
@@ -297,6 +318,37 @@ const Navbar = () => {
               >
                 <UserCircle2 className="h-6 w-6" />
               </button>
+
+              {isMobileMenuOpen && (
+                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[70] w-[min(18rem,calc(100vw-1.5rem))] rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-200/80">
+                  <div className="border-b border-slate-200 px-2 pb-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Menu
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Jump to the key workspace pages.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {mobileMenuLinks.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={closeMobileMenu}
+                        className={`block rounded-2xl border px-4 py-3 transition ${
+                          location.pathname === item.to
+                            ? "border-sky-200 bg-sky-50 text-sky-700"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{item.label}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.description}</div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -323,166 +375,23 @@ const Navbar = () => {
       </nav>
 
       {isAuthenticated && isMobileMenuOpen && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm xl:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-label="Close navigation menu"
-          />
-          <aside className="fixed inset-y-0 left-0 z-50 flex w-[min(24rem,92vw)] flex-col border-r border-slate-200 bg-white shadow-2xl xl:hidden">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Navigation
-                </p>
-                <h2 className="mt-1 text-lg font-bold text-slate-900">Dashboard Menu</h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Move quickly between Assessment, MediGuide AI, and your profile tools.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-                aria-label="Close navigation menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-              <div className="rounded-3xl bg-slate-50 p-4">
-                <div className="flex items-center gap-3">
-                  <UserCircle2 className="h-12 w-12 shrink-0 text-med-primary" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-slate-900">
-                      {user?.name}
-                    </div>
-                    <div className="truncate text-xs text-slate-500">
-                      {verified ? "Verified account" : "Verification pending"}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={openMobileProfile}
-                  className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                >
-                  Open profile panel
-                </button>
-              </div>
-
-              <div className="grid gap-3">
-                <Link
-                  to="/dashboard"
-                  className="rounded-3xl border border-slate-200 bg-white px-4 py-4 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-sky-50 p-2 text-sky-700">
-                      <LayoutDashboard className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">Assessment</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Review symptom submissions, history, and follow-up details.
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  to="/clinical"
-                  className="rounded-3xl border border-slate-200 bg-white px-4 py-4 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-sky-50 p-2 text-sky-700">
-                      <Brain className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">MediGuide AI</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Open the AI workspace for chat, attachments, and clinical guidance.
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-                <button
-                  type="button"
-                  onClick={openMobileProfile}
-                  className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-sky-50 p-2 text-sky-700">
-                      <UserCircle2 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">Profile</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Access your verified account details and patient profile tools.
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <div className="space-y-3">{renderNavigationLinks(true)}</div>
-
-              {user?.role !== "admin" && verified && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-2xl bg-sky-50 p-2 text-sky-700">
-                      <ClipboardList className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">Quick actions</h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Reach assessment history or update your intake profile.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid gap-3">
-                    <button
-                      type="button"
-                      onClick={handleViewAssessmentHistory}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
-                    >
-                      View assessment history
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleEditProfile}
-                      className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
-                    >
-                      {profileState.complete ? "Update patient profile" : "Complete patient profile"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-slate-200 px-5 py-4">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </button>
-            </div>
-          </aside>
-        </>
+        <button
+          type="button"
+          className="fixed inset-0 z-[60] bg-transparent xl:hidden"
+          onClick={closeMobileMenu}
+          aria-label="Close navigation menu"
+        />
       )}
 
       {isAuthenticated && isMobileProfileOpen && (
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm xl:hidden"
+            className="fixed inset-0 z-[80] bg-slate-950/35 backdrop-blur-sm xl:hidden"
             onClick={() => setIsMobileProfileOpen(false)}
             aria-label="Close profile panel"
           />
-          <section className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-[32px] border-t border-slate-200 bg-white shadow-2xl xl:hidden">
+          <section className="fixed inset-0 z-[90] overflow-y-auto bg-white xl:hidden">
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -499,7 +408,7 @@ const Navbar = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="px-5 pb-8 pt-4">
+            <div className="mx-auto max-w-3xl px-5 pb-10 pt-4">
               <ProfilePanelContent
                 patientProfileDetails={patientProfileDetails}
                 patientProfileLabel={patientProfileLabel}
