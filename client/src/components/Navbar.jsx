@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   ShieldCheck,
+  Stethoscope,
   UserCircle2,
   X,
 } from "lucide-react";
@@ -170,6 +171,22 @@ const Navbar = () => {
             description: "Open the clinical workspace and multimodal chat.",
             icon: Brain,
           },
+          ...(user?.role !== "admin"
+            ? [
+                {
+                  to: "/professional-application",
+                  label:
+                    user?.role === "medical_professional"
+                      ? "Professional Status"
+                      : "Apply to Guide",
+                  description:
+                    user?.role === "medical_professional"
+                      ? "Review your approved professional role and verification details."
+                      : "Apply to provide human medical guidance when escalation is needed.",
+                  icon: Stethoscope,
+                },
+              ]
+            : []),
           ...(user?.role === "admin"
             ? [
                 {
@@ -238,6 +255,21 @@ const Navbar = () => {
       ? [
           { to: "/dashboard", label: "Assessment", description: "Assessment history and follow-up details." },
           { to: "/clinical", label: "MediGuide AI", description: "Open the AI workspace and conversation view." },
+          ...(user?.role !== "admin"
+            ? [
+                {
+                  to: "/professional-application",
+                  label:
+                    user?.role === "medical_professional"
+                      ? "Professional Status"
+                      : "Apply to Guide",
+                  description:
+                    user?.role === "medical_professional"
+                      ? "Review your approved verification status and role."
+                      : "Apply to provide human medical guidance when needed.",
+                },
+              ]
+            : []),
           ...(user?.role === "admin"
             ? [{ to: "/admin", label: "Admin Panel", description: "Manage users, reports, and triage workflows." }]
             : []),

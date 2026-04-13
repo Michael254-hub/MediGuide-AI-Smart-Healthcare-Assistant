@@ -107,6 +107,22 @@ class UserRepository {
     return this.normalizeTimestamps(data);
   }
 
+  async findManyByIds(ids = []) {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, phone, role, created_at, updated_at')
+      .in('id', uniqueIds);
+
+    if (error) throw error;
+    return data.map((item) => this.normalizeTimestamps(item));
+  }
+
   async findAuthById(id) {
     const { data, error } = await supabase
       .from('users')

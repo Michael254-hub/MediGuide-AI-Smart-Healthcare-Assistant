@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Clock, PlusCircle } from 'lucide-react';
+import { Activity, Clock, PlusCircle, Stethoscope } from 'lucide-react';
 import api from '../services/api';
 import RiskAlert from '../components/RiskAlert';
+import { useAuthStore } from '../store/authStore';
 
 const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -71,6 +73,37 @@ const Dashboard = () => {
           <PlusCircle className="w-5 h-5" /> New Assessment
         </Link>
       </div>
+
+      {user?.role !== "admin" && (
+        <div className="mb-8 rounded-3xl border border-sky-100 bg-linear-to-r from-sky-50 via-white to-emerald-50 p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                <Stethoscope className="h-3.5 w-3.5" />
+                Human Guidance Network
+              </div>
+              <h2 className="mt-3 text-xl font-bold text-med-dark">
+                {user?.role === "medical_professional"
+                  ? "Your professional account is active"
+                  : "Apply to provide human medical guidance"}
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 sm:text-base">
+                {user?.role === "medical_professional"
+                  ? "Review the role you were approved for and keep your verification details handy."
+                  : "Licensed clinicians can apply for specific support roles so admins can verify their credentials before approval."}
+              </p>
+            </div>
+
+            <Link
+              to="/professional-application"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              <Stethoscope className="h-4 w-4" />
+              {user?.role === "medical_professional" ? "View status" : "Start application"}
+            </Link>
+          </div>
+        </div>
+      )}
 
       {history.length === 0 ? (
         <div className="rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm sm:p-12">

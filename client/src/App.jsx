@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import SubmitSymptoms from "./pages/SubmitSymptoms";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClinicalDashboard from "./pages/ClinicalDashboard";
+import MedicalProfessionalApplication from "./pages/MedicalProfessionalApplication";
 import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
@@ -70,6 +71,14 @@ function App() {
             element={
               <PrivateRoute>
                 <ClinicalDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/professional-application"
+            element={
+              <PrivateRoute>
+                <MedicalProfessionalApplication />
               </PrivateRoute>
             }
           />

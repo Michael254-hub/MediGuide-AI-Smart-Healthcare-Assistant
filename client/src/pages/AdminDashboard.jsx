@@ -1,132 +1,439 @@
-import { useState, useEffect } from 'react';
-import { Users, Activity, ShieldAlert, BarChart3, AlertTriangle } from 'lucide-react';
-import api from '../services/api';
+import { useEffect, useState } from 'react';
+import {
+  Users,
+  Activity,
+  ShieldAlert,
+  BarChart3,
+  AlertTriangle,
+  FileCheck2,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
+import api, { adminAPI } from '../services/api';
 import DashboardCard from '../components/DashboardCard';
+
+const roleLabels = {
+  general_practitioner: 'General Practitioner',
+  specialist_physician: 'Specialist Physician',
+  nurse: 'Nurse',
+  pharmacist: 'Pharmacist',
+  mental_health_professional: 'Mental Health Professional',
+  nutrition_specialist: 'Nutrition Specialist',
+  physiotherapist: 'Physiotherapist',
+};
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [professionalApplications, setProfessionalApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewNotesById, setReviewNotesById] = useState({});
+  const [actionMessage, setActionMessage] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [activeReviewAction, setActiveReviewAction] = useState(null);
+
+  const loadAdminData = async () => {
+    try {
+      const [statsRes, submissionsRes, professionalAppsRes] = await Promise.all([
+        api.get('/admin/stats'),
+        api.get('/admin/submissions'),
+        adminAPI.getProfessionalApplications(),
+      ]);
+
+      setStats(statsRes.data.data);
+      setSubmissions(submissionsRes.data.data);
+      setProfessionalApplications(professionalAppsRes.data.data);
+    } catch (error) {
+      console.error('Failed to fetch admin data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAdminData = async () => {
-      try {
-        const [statsRes, subsRes] = await Promise.all([
-          api.get('/admin/stats'),
-          api.get('/admin/submissions')
-        ]);
-        
-        setStats(statsRes.data.data);
-        setSubmissions(subsRes.data.data);
-      } catch (error) {
-        console.error('Failed to fetch admin data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAdminData();
+    loadAdminData();
   }, []);
 
   const formatDate = (dateString) => {
+    if (!dateString) {
+      return 'Not available';
+    }
+
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const getRiskColorInfo = (level) => {
     switch (level) {
-      case 'EMERGENCY': return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', icon: <AlertTriangle className="w-4 h-4 text-red-600 mr-2" /> };
-      case 'HIGH': return { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' };
-      case 'MEDIUM': return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' };
+      case 'EMERGENCY':
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-700',
+          border: 'border-red-200',
+          icon: <AlertTriangle className="mr-2 h-4 w-4 text-red-600" />,
+        };
+      case 'HIGH':
+        return { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' };
+      case 'MEDIUM':
+        return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' };
       case 'LOW':
-      default: return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
+      default:
+        return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
     }
   };
 
+  const getApplicationStatusClasses = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'rejected':
+        return 'bg-rose-100 text-rose-700 border-rose-200';
+      case 'pending':
+      default:
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+    }
+  };
+
+  const handleReviewNoteChange = (applicationId, value) => {
+    setReviewNotesById((current) => ({
+      ...current,
+      [applicationId]: value,
+    }));
+  };
+
+  const handleReviewAction = async (application, status) => {
+    setActiveReviewAction(`${application.id}-${status}`);
+    setActionMessage(null);
+    setActionError(null);
+
+    try {
+      const payload = {
+        status,
+        reviewerNotes: reviewNotesById[application.id] ?? application.reviewerNotes ?? '',
+      };
+
+      if (status === 'approved') {
+        payload.approvedRole = application.desiredRole;
+      }
+
+      await adminAPI.reviewProfessionalApplication(application.id, payload);
+      setActionMessage(
+        status === 'approved'
+          ? 'Professional application approved successfully.'
+          : 'Professional application rejected successfully.'
+      );
+      await loadAdminData();
+    } catch (error) {
+      const validationErrors = error.response?.data?.errors;
+      const message = Array.isArray(validationErrors)
+        ? validationErrors.map((item) => item.message).join(', ')
+        : error.response?.data?.message;
+
+      setActionError(
+        message || 'Unable to update the professional application right now.'
+      );
+    } finally {
+      setActiveReviewAction(null);
+    }
+  };
+
+  const riskDistribution = Array.isArray(stats?.riskDistribution)
+    ? stats.riskDistribution
+    : Object.entries(stats?.riskDistribution || {}).map(([level, count]) => ({
+        _id: level,
+        count,
+      }));
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <div className="w-16 h-16 border-4 border-slate-200 border-t-med-primary rounded-full animate-spin"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-t-med-primary" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full animate-fade-in">
+    <div className="mx-auto w-full max-w-7xl animate-fade-in px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-med-dark tracking-tight">Admin Overview</h1>
-          <p className="text-med-muted mt-2">Platform analytics and patient monitoring</p>
+          <h1 className="text-3xl font-bold tracking-tight text-med-dark">Admin Overview</h1>
+          <p className="mt-2 text-med-muted">Platform analytics, patient monitoring, and credential review</p>
         </div>
-        <div className="px-4 py-2 bg-slate-800 text-white rounded-lg font-mono text-sm shadow-sm flex items-center gap-2">
-           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-           v1.0.0 Production
+        <div className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 font-mono text-sm text-white shadow-sm">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-green-400"></div>
+          v1.0.0 Production
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <DashboardCard 
-          title="Total Users" 
-          value={stats?.totalUsers || 0} 
-          icon={<Users className="w-6 h-6" />}
+      <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
+        <DashboardCard
+          title="Total Users"
+          value={stats?.totalUsers || 0}
+          icon={<Users className="h-6 w-6" />}
           colorClass="blue"
         />
-        <DashboardCard 
-          title="Total Assessments" 
-          value={stats?.totalSubmissions || 0} 
-          icon={<Activity className="w-6 h-6" />}
+        <DashboardCard
+          title="Total Assessments"
+          value={stats?.totalSubmissions || 0}
+          icon={<Activity className="h-6 w-6" />}
           colorClass="indigo"
         />
-        <DashboardCard 
-          title="Emergency Cases" 
-          value={stats?.emergencyCases || 0} 
-          icon={<ShieldAlert className="w-6 h-6" />}
+        <DashboardCard
+          title="Emergency Cases"
+          value={stats?.emergencyCases || 0}
+          icon={<ShieldAlert className="h-6 w-6" />}
           colorClass="red"
           subtext="Requires immediate attention"
         />
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
-          <div className="flex justify-between items-start mb-6">
+        <DashboardCard
+          title="Pending Professionals"
+          value={stats?.pendingProfessionalApplications || 0}
+          icon={<FileCheck2 className="h-6 w-6" />}
+          colorClass="emerald"
+          subtext="Awaiting credential review"
+        />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-slate-400"></div>
+          <div className="mb-6 flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Risk Distribution</p>
+              <p className="text-sm font-medium text-slate-500">Risk Distribution</p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50 text-slate-600">
-              <BarChart3 className="w-6 h-6" />
+            <div className="rounded-xl bg-slate-50 p-3 text-slate-600">
+              <BarChart3 className="h-6 w-6" />
             </div>
           </div>
           <div className="space-y-3">
-            {stats?.riskDistribution?.map(dist => (
+            {riskDistribution.map((dist) => (
               <div key={dist._id} className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-slate-600">{dist._id}</span>
-                <div className="flex-1 mx-4 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${dist._id === 'EMERGENCY' ? 'bg-red-500' : dist._id === 'HIGH' ? 'bg-orange-500' : dist._id === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'}`}
-                    style={{ width: `${(dist.count / stats.totalSubmissions) * 100}%` }}
+                <div className="mx-4 h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full ${
+                      dist._id === 'EMERGENCY'
+                        ? 'bg-red-500'
+                        : dist._id === 'HIGH'
+                          ? 'bg-orange-500'
+                          : dist._id === 'MEDIUM'
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                    }`}
+                    style={{
+                      width: `${stats?.totalSubmissions ? (dist.count / stats.totalSubmissions) * 100 : 0}%`,
+                    }}
                   ></div>
                 </div>
                 <span className="font-bold text-slate-800">{dist.count}</span>
               </div>
             ))}
+            {riskDistribution.length === 0 && (
+              <p className="text-sm text-slate-500">No risk data available yet.</p>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      <div className="mb-12 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50 px-8 py-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-med-dark">Medical Professional Applications</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Review licenses, education, and work experience before granting human guidance access.
+            </p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-500">
+            {professionalApplications.length} Applications
+          </span>
+        </div>
+
+        {(actionMessage || actionError) && (
+          <div className="space-y-3 px-8 pt-6">
+            {actionMessage && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                {actionMessage}
+              </div>
+            )}
+            {actionError && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                {actionError}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-6 p-8">
+          {professionalApplications.map((application) => (
+            <div key={application.id} className="rounded-3xl border border-slate-200 p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {application.applicant?.name || 'Unknown applicant'}
+                    </h3>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold capitalize ${getApplicationStatusClasses(application.status)}`}
+                    >
+                      {application.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {application.applicant?.email || application.applicant?.phone || 'No contact available'}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[20rem]">
+                  <InfoTile
+                    label="Requested role"
+                    value={roleLabels[application.desiredRole] || application.desiredRole}
+                  />
+                  <InfoTile
+                    label="Experience"
+                    value={`${application.yearsOfExperience} years`}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <InfoTile label="License number" value={application.licenseNumber} />
+                <InfoTile label="Licensing authority" value={application.licensingAuthority} />
+                <InfoTile label="License jurisdiction" value={application.licenseJurisdiction} />
+                <InfoTile label="License expiry" value={formatDate(application.licenseExpiryDate)} />
+                <InfoTile label="Institution" value={application.educationInstitution} />
+                <InfoTile label="Qualification" value={application.educationQualification} />
+                <InfoTile label="Graduation year" value={String(application.educationGraduationYear)} />
+                <InfoTile label="Current employer" value={application.currentEmployer || 'Not provided'} />
+              </div>
+
+              <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+                <div className="rounded-2xl bg-slate-50 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Work experience summary
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">
+                    {application.workExperienceSummary}
+                  </p>
+
+                  {application.professionalStatement && (
+                    <>
+                      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Professional statement
+                      </p>
+                      <p className="mt-3 text-sm leading-6 text-slate-700">
+                        {application.professionalStatement}
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Specialties
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {application.specialties.map((specialty) => (
+                        <span
+                          key={specialty}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                        >
+                          {specialty}
+                        </span>
+                      ))}
+                      {application.specialties.length === 0 && (
+                        <p className="text-sm text-slate-500">No specialties listed.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Supporting references
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {application.supportingDocuments.length > 0 ? (
+                        application.supportingDocuments.map((reference) => (
+                          <div
+                            key={reference}
+                            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                          >
+                            {reference}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">No supporting references provided.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Reviewer notes
+                  </label>
+                  <textarea
+                    value={reviewNotesById[application.id] ?? application.reviewerNotes ?? ''}
+                    onChange={(event) => handleReviewNoteChange(application.id, event.target.value)}
+                    rows={3}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-med-primary focus:outline-none focus:ring-4 focus:ring-med-primary/15"
+                    placeholder="Add verification notes or explain a rejection decision..."
+                  />
+                  {application.reviewedAt && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Last reviewed {formatDate(application.reviewedAt)}
+                      {application.reviewer?.name ? ` by ${application.reviewer.name}` : ''}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 lg:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleReviewAction(application, 'approved')}
+                    disabled={activeReviewAction !== null}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {activeReviewAction === `${application.id}-approved` ? 'Approving...' : 'Approve'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleReviewAction(application, 'rejected')}
+                    disabled={activeReviewAction !== null}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {activeReviewAction === `${application.id}-rejected` ? 'Rejecting...' : 'Reject'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {professionalApplications.length === 0 && (
+            <div className="rounded-3xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
+              No medical professional applications have been submitted yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-8 py-6">
           <h2 className="text-xl font-bold text-med-dark">Recent Submissions Log</h2>
-          <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-500">
             {submissions.length} Total Records
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-white border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-slate-100 bg-white text-xs uppercase tracking-wider text-slate-500">
                 <th className="px-8 py-5 font-bold">Patient</th>
                 <th className="px-8 py-5 font-bold">Submitted</th>
                 <th className="px-8 py-5 font-bold">Risk Level</th>
@@ -137,21 +444,30 @@ const AdminDashboard = () => {
               {submissions.map((log) => {
                 const config = getRiskColorInfo(log.riskLevel);
                 return (
-                  <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={log._id} className="transition-colors hover:bg-slate-50/50">
                     <td className="px-8 py-5">
-                      <div className="font-bold text-med-dark">{log.submissionId?.userId?.name || 'Unknown User'}</div>
-                      <div className="text-sm text-slate-500">{log.submissionId?.userId?.email}</div>
+                      <div className="font-bold text-med-dark">
+                        {log.submissionId?.userId?.name || 'Unknown User'}
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {log.submissionId?.userId?.email}
+                      </div>
                     </td>
                     <td className="px-8 py-5 text-sm font-medium text-slate-600">
                       {formatDate(log.createdAt)}
                     </td>
                     <td className="px-8 py-5">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${config.bg} ${config.text} ${config.border}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${config.bg} ${config.text} ${config.border}`}
+                      >
                         {config.icon} {log.riskLevel}
                       </span>
                     </td>
                     <td className="px-8 py-5">
-                      <p className="text-sm text-slate-700 truncate max-w-xs" title={log.submissionId?.symptoms}>
+                      <p
+                        className="max-w-xs truncate text-sm text-slate-700"
+                        title={log.submissionId?.symptoms}
+                      >
                         {log.submissionId?.symptoms}
                       </p>
                     </td>
@@ -161,14 +477,19 @@ const AdminDashboard = () => {
             </tbody>
           </table>
           {submissions.length === 0 && (
-            <div className="p-12 text-center text-slate-500">
-              No submissions found.
-            </div>
+            <div className="p-12 text-center text-slate-500">No submissions found.</div>
           )}
         </div>
       </div>
     </div>
   );
 };
+
+const InfoTile = ({ label, value }) => (
+  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+    <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</div>
+    <div className="mt-1 text-sm font-semibold text-slate-800">{value}</div>
+  </div>
+);
 
 export default AdminDashboard;

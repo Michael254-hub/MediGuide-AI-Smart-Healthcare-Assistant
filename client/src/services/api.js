@@ -76,6 +76,11 @@ export const patientProfileAPI = {
   getDeidentifiedProfile: () => api.get('/patient-profile/de-identified'),
 };
 
+export const professionalApplicationAPI = {
+  getMine: () => api.get('/professional-applications/me'),
+  submit: (data) => api.post('/professional-applications', data),
+};
+
 // Clinical API methods
 export const clinicalAPI = {
   getPatientData: () => api.get('/clinical/patient-data'),
@@ -111,6 +116,9 @@ export const adminAPI = {
   updateTriageStatus: (submissionId, data) => api.patch(`/admin/triage/${submissionId}`, data),
   generateReport: (reportType, dateRange) => 
     api.post('/admin/reports', { reportType, dateRange }),
+  getProfessionalApplications: () => api.get('/admin/professional-applications'),
+  reviewProfessionalApplication: (applicationId, data) =>
+    api.patch(`/admin/professional-applications/${applicationId}`, data),
 };
 
 export default api;
