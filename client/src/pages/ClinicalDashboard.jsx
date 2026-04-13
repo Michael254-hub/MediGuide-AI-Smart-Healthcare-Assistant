@@ -7,11 +7,13 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronUp,
+  Download,
   FileText,
   Heart,
   Image as ImageIcon,
   Loader,
   MessageCircle,
+  Mic,
   Paperclip,
   Pill,
   Plus,
@@ -42,7 +44,7 @@ const SUPPORTED_DOCUMENT_MIME_TYPES = new Set([
   "text/xml",
 ]);
 const ATTACHMENT_ACCEPT =
-  "image/*,video/*,application/pdf,text/plain,text/markdown,text/csv,application/json,application/xml,text/xml";
+  "image/*,video/*,audio/*,application/pdf,text/plain,text/markdown,text/csv,application/json,application/xml,text/xml";
 
 const createId = (prefix) => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -86,13 +88,23 @@ const getAttachmentKind = (mimeType = "") => {
     return "video";
   }
 
+  if (mimeType.startsWith("audio/")) {
+    return "audio";
+  }
+
   return "document";
 };
 
 const isSupportedAttachment = (file) =>
   file.type.startsWith("image/") ||
   file.type.startsWith("video/") ||
+  file.type.startsWith("audio/") ||
   SUPPORTED_DOCUMENT_MIME_TYPES.has(file.type);
+
+const isPreviewableAttachment = (fileOrAttachment) =>
+  fileOrAttachment?.type?.startsWith("image/") ||
+  fileOrAttachment?.type?.startsWith("video/") ||
+  fileOrAttachment?.type?.startsWith("audio/");
 
 const createDraftAttachment = (file) => ({
   id: createId("draft"),
@@ -101,19 +113,28 @@ const createDraftAttachment = (file) => ({
   size: file.size,
   type: file.type || "application/octet-stream",
   kind: getAttachmentKind(file.type),
-  previewUrl:
-    file.type.startsWith("image/") || file.type.startsWith("video/")
-      ? URL.createObjectURL(file)
-      : null,
+  previewUrl: isPreviewableAttachment(file) ? URL.createObjectURL(file) : null,
 });
 
-const toMessageAttachment = (attachment) => ({
-  id: attachment.id,
-  name: attachment.name,
-  size: attachment.size,
-  type: attachment.type,
-  kind: attachment.kind,
+const normalizeAttachmentRecord = (attachment = {}) => ({
+  id: attachment.id || createId("attachment"),
+  name: attachment.name || "Attachment",
+  size: attachment.size || 0,
+  type: attachment.type || "application/octet-stream",
+  kind: attachment.kind || getAttachmentKind(attachment.type),
+  url: attachment.url || "",
+  description: attachment.description || "",
+  generated: Boolean(attachment.generated),
 });
+
+const toMessageAttachment = (attachment) =>
+  normalizeAttachmentRecord({
+    id: attachment.id,
+    name: attachment.name,
+    size: attachment.size,
+    type: attachment.type,
+    kind: attachment.kind,
+  });
 
 const sanitizeStoredConversations = (rawValue) => {
   if (!Array.isArray(rawValue) || rawValue.length === 0) {
@@ -148,13 +169,9 @@ const sanitizeStoredConversations = (rawValue) => {
               usage: message.usage || null,
               isError: Boolean(message.isError),
               attachments: Array.isArray(message.attachments)
-                ? message.attachments.map((attachment) => ({
-                    id: attachment.id || createId("attachment"),
-                    name: attachment.name || "Attachment",
-                    size: attachment.size || 0,
-                    type: attachment.type || "application/octet-stream",
-                    kind: attachment.kind || getAttachmentKind(attachment.type),
-                  }))
+                ? message.attachments.map((attachment) =>
+                    normalizeAttachmentRecord(attachment)
+                  )
                 : [],
             }))
         : [],
@@ -439,7 +456,7 @@ const ClinicalDashboard = () => {
 
       if (selectedFiles.length !== supportedFiles.length) {
         setChatNotice(
-          "Some files were skipped. MediGuide AI currently supports images, videos, PDFs, and text-based documents."
+          "Some files were skipped. MediGuide AI currently supports images, videos, audio files, PDFs, and text-based documents."
         );
       } else if (supportedFiles.length > remainingSlots) {
         setChatNotice(`You can attach up to ${MAX_ATTACHMENTS} files per message.`);
@@ -520,7 +537,11 @@ const ClinicalDashboard = () => {
         content: response.data.data.consultation,
         timestamp: response.data.data.timestamp || new Date().toISOString(),
         usage: response.data.data.usage,
-        attachments: [],
+        attachments: Array.isArray(response.data.data.artifacts)
+          ? response.data.data.artifacts.map((artifact) =>
+              normalizeAttachmentRecord(artifact)
+            )
+          : [],
       };
 
       updateConversation(conversationId, (conversation) => ({
@@ -761,7 +782,7 @@ const MediGuideChatTab = ({
                 {activeConversation?.title || "MediGuide Chat"}
               </h2>
               <p className="text-sm text-slate-500">
-                Text, images, videos, PDFs, and text documents in one clinical thread
+                Text, images, videos, audio, PDFs, and text documents in one clinical thread
               </p>
             </div>
           </div>
@@ -844,8 +865,8 @@ const MediGuideChatTab = ({
                   Start a richer MediGuide AI conversation
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Ask by text alone, or attach images, short videos, PDFs, and text
-                  documents for Gemini to review in the same thread.
+                  Ask by text alone, or attach images, audio clips, short videos,
+                  PDFs, and text documents for Gemini to review in the same thread.
                 </p>
               </div>
             </div>
@@ -885,6 +906,10 @@ const MediGuideChatTab = ({
                   Images
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                  <Mic className="h-3.5 w-3.5 text-slate-500" />
+                  Audio
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
                   <Video className="h-3.5 w-3.5 text-slate-500" />
                   Videos
                 </span>
@@ -893,12 +918,16 @@ const MediGuideChatTab = ({
                   Documents
                 </span>
               </div>
+              <p className="mb-4 text-xs text-slate-500">
+                MediGuide can review these inputs and respond with text, SVG visuals,
+                and downloadable reports or data files.
+              </p>
 
               <textarea
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
-                placeholder="Message MediGuide AI about symptoms, differential diagnosis, treatment options, or ask it to review attachments..."
+                placeholder="Message MediGuide AI about symptoms, differential diagnosis, treatment options, or ask it to review attachments, create a visual summary, or generate a document..."
                 disabled={isConsulting}
                 rows={5}
                 className="min-h-[140px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
@@ -924,7 +953,7 @@ const MediGuideChatTab = ({
                     Add attachments
                   </button>
                   <span className="text-xs text-slate-500">
-                    Supports images, videos, PDFs, TXT, CSV, and JSON
+                    Supports images, audio, videos, PDFs, TXT, CSV, and JSON
                   </span>
                 </div>
 
@@ -950,6 +979,28 @@ const MediGuideChatTab = ({
   );
 };
 
+const AttachmentPreview = ({ attachment, className }) => {
+  const previewUrl = attachment.previewUrl || attachment.url;
+
+  if (!previewUrl) {
+    return null;
+  }
+
+  if (attachment.kind === "image") {
+    return <img src={previewUrl} alt={attachment.name} className={className} />;
+  }
+
+  if (attachment.kind === "video") {
+    return <video src={previewUrl} controls className={className} />;
+  }
+
+  if (attachment.kind === "audio") {
+    return <audio src={previewUrl} controls className={className} />;
+  }
+
+  return null;
+};
+
 const DraftAttachmentCard = ({ attachment, onRemove }) => (
   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3">
     <div className="flex items-start justify-between gap-3">
@@ -972,43 +1023,75 @@ const DraftAttachmentCard = ({ attachment, onRemove }) => (
       </button>
     </div>
 
-    {attachment.kind === "image" && attachment.previewUrl && (
-      <img
-        src={attachment.previewUrl}
-        alt={attachment.name}
-        className="mt-3 h-36 w-full rounded-2xl object-cover"
-      />
-    )}
-
-    {attachment.kind === "video" && attachment.previewUrl && (
-      <video
-        src={attachment.previewUrl}
-        controls
-        className="mt-3 h-36 w-full rounded-2xl bg-slate-900 object-cover"
-      />
-    )}
+    <AttachmentPreview
+      attachment={attachment}
+      className={
+        attachment.kind === "audio"
+          ? "mt-3 w-full"
+          : "mt-3 h-36 w-full rounded-2xl bg-slate-900 object-cover"
+      }
+    />
   </div>
 );
 
-const MessageAttachmentCard = ({ attachment, isUserMessage }) => (
-  <div
-    className={`rounded-2xl border px-3 py-3 ${
-      isUserMessage
-        ? "border-white/30 bg-white/10 text-white"
-        : "border-slate-200 bg-slate-50 text-slate-700"
-    }`}
-  >
-    <div className="flex items-center gap-3">
-      <AttachmentTypeIcon attachment={attachment} compact />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">{attachment.name}</p>
-        <p className="text-xs opacity-70">
-          {attachment.kind} - {formatBytes(attachment.size)}
-        </p>
+const MessageAttachmentCard = ({ attachment, isUserMessage }) => {
+  const hasPreview = Boolean(attachment.previewUrl || attachment.url);
+  const canDownload = Boolean(attachment.url);
+
+  return (
+    <div
+      className={`rounded-2xl border px-3 py-3 ${
+        isUserMessage
+          ? "border-white/30 bg-white/10 text-white"
+          : "border-slate-200 bg-slate-50 text-slate-700"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <AttachmentTypeIcon attachment={attachment} compact />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{attachment.name}</p>
+              <p className="text-xs opacity-70">
+                {attachment.kind} - {formatBytes(attachment.size)}
+              </p>
+            </div>
+
+            {canDownload && (
+              <a
+                href={attachment.url}
+                download={attachment.name}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                  isUserMessage
+                    ? "bg-white/15 text-white hover:bg-white/25"
+                    : "bg-white text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </a>
+            )}
+          </div>
+
+          {attachment.description && (
+            <p className="mt-2 text-xs leading-5 opacity-80">{attachment.description}</p>
+          )}
+        </div>
       </div>
+
+      {hasPreview && (
+        <AttachmentPreview
+          attachment={attachment}
+          className={
+            attachment.kind === "audio"
+              ? "mt-3 w-full"
+              : "mt-3 max-h-56 w-full rounded-2xl bg-slate-900 object-contain"
+          }
+        />
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const AttachmentTypeIcon = ({ attachment, compact = false }) => {
   const className = compact ? "h-4 w-4" : "h-5 w-5";
@@ -1021,6 +1104,8 @@ const AttachmentTypeIcon = ({ attachment, compact = false }) => {
       <ImageIcon className={className} />
     ) : attachment.kind === "video" ? (
       <Video className={className} />
+    ) : attachment.kind === "audio" ? (
+      <Mic className={className} />
     ) : (
       <FileText className={className} />
     );

@@ -8,6 +8,17 @@ const env = require('../config/env');
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = env.geminiModel;
+const MAX_ARTIFACTS = 3;
+const ARTIFACT_FORMAT_CONFIG = {
+  svg: { extension: 'svg', mimeType: 'image/svg+xml', kind: 'image' },
+  md: { extension: 'md', mimeType: 'text/markdown', kind: 'document' },
+  markdown: { extension: 'md', mimeType: 'text/markdown', kind: 'document' },
+  html: { extension: 'html', mimeType: 'text/html', kind: 'document' },
+  csv: { extension: 'csv', mimeType: 'text/csv', kind: 'document' },
+  json: { extension: 'json', mimeType: 'application/json', kind: 'document' },
+  text: { extension: 'txt', mimeType: 'text/plain', kind: 'document' },
+  txt: { extension: 'txt', mimeType: 'text/plain', kind: 'document' },
+};
 const DEFAULT_SUGGESTIONS = [
   "What findings in this patient suggest the highest immediate risk?",
   "What differential diagnoses should we prioritize based on the current data?",
@@ -44,6 +55,30 @@ CRITICAL: This is a decision support tool to assist clinicians, NOT a replacemen
 
 When responding in conversations, identify yourself as MediGuide AI when relevant and maintain a clear, supportive, professional tone.`;
 
+const CLINICAL_STRUCTURED_RESPONSE_PROMPT = `${CLINICAL_SYSTEM_PROMPT}
+
+You may also generate supporting artifacts when clinically useful or when the user asks for them. Always return valid JSON with this exact top-level shape and no markdown fences:
+{
+  "responseText": "Primary clinician-facing answer in plain text",
+  "artifacts": [
+    {
+      "kind": "image or document",
+      "format": "svg, markdown, html, csv, json, or txt",
+      "title": "Short artifact title",
+      "filename": "safe-file-name.ext",
+      "description": "One sentence describing the artifact",
+      "content": "Complete artifact contents"
+    }
+  ]
+}
+
+Artifact rules:
+- Keep artifacts concise and useful
+- Generate at most ${MAX_ARTIFACTS} artifacts
+- Image artifacts must be valid standalone SVG markup
+- Documents may be markdown, html, csv, json, or txt
+- If no artifact is useful, return an empty artifacts array`;
+
 const describeAttachment = (attachment) => {
   if (attachment.mimeType.startsWith('image/')) {
     return `image: ${attachment.name}`;
@@ -51,6 +86,10 @@ const describeAttachment = (attachment) => {
 
   if (attachment.mimeType.startsWith('video/')) {
     return `video: ${attachment.name}`;
+  }
+
+  if (attachment.mimeType.startsWith('audio/')) {
+    return `audio: ${attachment.name}`;
   }
 
   return `document: ${attachment.name}`;
@@ -70,6 +109,126 @@ const createModel = (options = {}) =>
     ...options,
   });
 
+const sanitizeFilename = (value, fallbackName) => {
+  const safeValue =
+    typeof value === 'string'
+      ? value
+          .trim()
+          .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '')
+      : '';
+
+  return safeValue || fallbackName;
+};
+
+const ensureExtension = (filename, extension) =>
+  filename.toLowerCase().endsWith(`.${extension}`) ? filename : `${filename}.${extension}`;
+
+const toDataUrl = (mimeType, content) =>
+  `data:${mimeType};base64,${Buffer.from(content, 'utf8').toString('base64')}`;
+
+const extractJsonObject = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmedValue);
+  } catch {
+    const objectMatch = trimmedValue.match(/\{[\s\S]*\}/);
+
+    if (!objectMatch) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch {
+      return null;
+    }
+  }
+};
+
+const normalizeArtifact = (artifact, index) => {
+  if (!artifact || typeof artifact !== 'object') {
+    return null;
+  }
+
+  const formatKey =
+    typeof artifact.format === 'string' ? artifact.format.trim().toLowerCase() : '';
+  const formatConfig = ARTIFACT_FORMAT_CONFIG[formatKey];
+
+  if (!formatConfig) {
+    return null;
+  }
+
+  const content = typeof artifact.content === 'string' ? artifact.content.trim() : '';
+
+  if (!content) {
+    return null;
+  }
+
+  const artifactTitle =
+    typeof artifact.title === 'string' && artifact.title.trim()
+      ? artifact.title.trim()
+      : `Artifact ${index + 1}`;
+  const fallbackName =
+    artifactTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') || `artifact-${index + 1}`;
+  const baseFilename = sanitizeFilename(artifact.filename, fallbackName);
+  const filename = ensureExtension(baseFilename, formatConfig.extension);
+
+  return {
+    id: `artifact-${Date.now()}-${index}`,
+    name: filename,
+    title: artifactTitle,
+    description:
+      typeof artifact.description === 'string' && artifact.description.trim()
+        ? artifact.description.trim()
+        : '',
+    kind: formatConfig.kind,
+    type: formatConfig.mimeType,
+    size: Buffer.byteLength(content, 'utf8'),
+    url: toDataUrl(formatConfig.mimeType, content),
+    generated: true,
+  };
+};
+
+const parseConsultationResponse = (rawText) => {
+  const parsed = extractJsonObject(rawText);
+
+  if (!parsed || typeof parsed !== 'object') {
+    return {
+      responseText: typeof rawText === 'string' ? rawText.trim() : '',
+      artifacts: [],
+    };
+  }
+
+  const artifacts = Array.isArray(parsed.artifacts)
+    ? parsed.artifacts.map(normalizeArtifact).filter(Boolean).slice(0, MAX_ARTIFACTS)
+    : [];
+  const responseText =
+    typeof parsed.responseText === 'string' && parsed.responseText.trim()
+      ? parsed.responseText.trim()
+      : artifacts.length > 0
+        ? 'Supporting outputs are attached below.'
+        : typeof rawText === 'string'
+          ? rawText.trim()
+          : '';
+
+  return {
+    responseText,
+    artifacts,
+  };
+};
+
 const createConsultationMessage = (patientContext, userQuestion, attachments = []) => {
   let message = `Patient Context:
 ${patientContext}
@@ -77,7 +236,14 @@ ${patientContext}
 Clinical Question:
 ${userQuestion}
 
-Provide a detailed, evidence-based clinical consultation addressing the question with specific recommendations.`;
+Provide a detailed, evidence-based clinical consultation addressing the question with specific recommendations.
+
+When helpful, or if the clinician asks for visual or file-based output, include supporting artifacts in the JSON response. Suitable artifacts include:
+- SVG clinical diagrams or visual summaries
+- Markdown or HTML reports
+- CSV tables
+- JSON summaries
+- Plain-text handoff notes`;
 
   if (attachments.length > 0) {
     message += `\n\nAttached materials for review:
@@ -97,7 +263,10 @@ const consultWithAI = async (
 ) => {
   try {
     const model = createModel({
-      systemInstruction: CLINICAL_SYSTEM_PROMPT,
+      systemInstruction: CLINICAL_STRUCTURED_RESPONSE_PROMPT,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -143,11 +312,12 @@ const consultWithAI = async (
       contents: contents,
     });
 
-    const responseText = response.response.text();
+    const parsedResponse = parseConsultationResponse(response.response.text());
 
     return {
       success: true,
-      response: responseText,
+      response: parsedResponse.responseText,
+      artifacts: parsedResponse.artifacts,
       usage: {
         inputTokens: response.response.usageMetadata?.promptTokenCount || 0,
         outputTokens: response.response.usageMetadata?.candidatesTokenCount || 0

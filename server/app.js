@@ -101,9 +101,10 @@ const aiUpload = createUpload({
   isAllowed: (file) =>
     file.mimetype.startsWith('image/') ||
     file.mimetype.startsWith('video/') ||
+    file.mimetype.startsWith('audio/') ||
     supportedDocumentMimeTypes.has(file.mimetype),
   errorMessage:
-    'Supported MediGuide AI attachments are images, videos, PDFs, and text-based documents.',
+    'Supported MediGuide AI attachments are images, videos, audio files, PDFs, and text-based documents.',
 });
 
 app.locals.upload = imageUpload;

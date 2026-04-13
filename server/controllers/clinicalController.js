@@ -140,6 +140,7 @@ const getAIConsultation = async (req, res, next) => {
       success: true,
       data: {
         consultation: consultation.response,
+        artifacts: consultation.artifacts || [],
         usage: consultation.usage,
         attachmentsProcessed: attachments.length,
         timestamp: new Date().toISOString()
