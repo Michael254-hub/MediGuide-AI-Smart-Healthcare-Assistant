@@ -254,9 +254,11 @@ const Navbar = () => {
   return (
     <>
       <nav className="flex items-center gap-2">
-        <div className="hidden xl:flex xl:items-center xl:gap-6">
-          {renderNavigationLinks(false)}
-        </div>
+        {isAuthenticated && (
+          <div className="hidden xl:flex xl:items-center xl:gap-6">
+            {renderNavigationLinks(false)}
+          </div>
+        )}
 
         {isAuthenticated ? (
           <>
