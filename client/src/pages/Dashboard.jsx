@@ -53,30 +53,38 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="mx-auto w-full max-w-7xl animate-fade-in px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-med-dark tracking-tight">Assessment History</h1>
-          <p className="text-med-muted mt-1">Review the full record of your past assessments, timestamps, and key clinical responses.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-med-dark sm:text-3xl">
+            Assessment History
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-med-muted sm:text-base">
+            Review the full record of your past assessments, timestamps, and key
+            clinical responses.
+          </p>
         </div>
-        <Link 
-          to="/submit" 
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-med-primary text-white font-medium rounded-full hover:bg-med-secondary shadow-md hover:shadow-lg transition-all"
+        <Link
+          to="/submit"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-med-primary px-6 py-3 font-medium text-white shadow-md transition-all hover:bg-med-secondary hover:shadow-lg sm:w-auto"
         >
           <PlusCircle className="w-5 h-5" /> New Assessment
         </Link>
       </div>
 
       {history.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
-          <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm sm:p-12">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-500">
             <Activity className="w-10 h-10" />
           </div>
           <h3 className="text-2xl font-bold text-med-dark mb-2">No Assessments Yet</h3>
-          <p className="text-med-muted mb-8 max-w-md mx-auto">You haven't submitted any symptoms for analysis. Start your first health assessment now.</p>
-          <Link 
-            to="/submit" 
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-med-primary text-white font-medium rounded-full hover:bg-med-secondary shadow-md transition-all"
+          <p className="mx-auto mb-8 max-w-md text-med-muted">
+            You haven&apos;t submitted any symptoms for analysis. Start your first
+            health assessment now.
+          </p>
+          <Link
+            to="/submit"
+            className="inline-flex items-center gap-2 rounded-full bg-med-primary px-8 py-3.5 font-medium text-white shadow-md transition-all hover:bg-med-secondary"
           >
             Check Symptoms
           </Link>
@@ -85,12 +93,22 @@ const Dashboard = () => {
         <div className="space-y-6">
           <h2 className="text-xl font-bold text-med-dark mb-4 border-b pb-2">All Assessments</h2>
           {history.map((record) => (
-            <div key={record.id || record.submission?.id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-slate-50">
+            <div
+              key={record.id || record.submission?.id}
+              className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-6"
+            >
+              <div className="mb-6 flex flex-col gap-4 border-b border-slate-50 pb-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 text-slate-500">
                     <Clock className="w-5 h-5 text-med-primary" />
-                    <span className="font-medium">Submitted: {formatDate(record.submittedAt || record.submission?.submittedAt || record.submission?.submitted_at)}</span>
+                    <span className="font-medium">
+                      Submitted:{" "}
+                      {formatDate(
+                        record.submittedAt ||
+                          record.submission?.submittedAt ||
+                          record.submission?.submitted_at
+                      )}
+                    </span>
                   </div>
                   {record.assessedAt && (
                     <div className="text-sm text-slate-400">
@@ -98,12 +116,16 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-                <div className={`px-4 py-1.5 rounded-full border text-sm font-bold uppercase tracking-wider inline-flex items-center w-max ${getRiskColor(record.triageLog.riskLevel || record.triageLog.risk_level)}`}>
+                <div
+                  className={`inline-flex w-max items-center rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wider ${getRiskColor(
+                    record.triageLog.riskLevel || record.triageLog.risk_level
+                  )}`}
+                >
                   {(record.triageLog.riskLevel || record.triageLog.risk_level)} RISK
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid gap-6 md:grid-cols-2 md:gap-8">
                 <div>
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Clinical Questions and Responses</h4>
                   <div className="space-y-4">

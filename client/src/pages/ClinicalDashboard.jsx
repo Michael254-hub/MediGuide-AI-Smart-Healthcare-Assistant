@@ -609,7 +609,7 @@ const ClinicalDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-cyan-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <MediGuideChatTab
           activeConversation={activeConversation}
           attachmentInputRef={attachmentInputRef}
@@ -657,6 +657,7 @@ const MediGuideChatTab = ({
 }) => {
   const patient = patientData?.patient;
   const canSend = inputValue.trim().length > 0 || draftAttachments.length > 0;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -670,9 +671,59 @@ const MediGuideChatTab = ({
     }
   };
 
+  const handleSelectConversation = (conversationId) => {
+    onSelectConversation(conversationId);
+    setIsSidebarOpen(false);
+  };
+
+  const handleCreateConversation = () => {
+    onNewConversation();
+    setIsSidebarOpen(false);
+  };
+
+  const handleSuggestedQuestionClick = (question) => {
+    onSuggestedQuestion(question);
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <div className="grid min-h-[calc(100vh-260px)] grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="flex min-h-[240px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+    <div className="space-y-4">
+      <div className="lg:hidden">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                MediGuide AI
+              </p>
+              <h2 className="mt-1 truncate text-lg font-bold text-slate-900">
+                {activeConversation?.title || "MediGuide Chat"}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((current) => !current)}
+              className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              {isSidebarOpen ? "Hide menu" : "Open menu"}
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+            <span className="rounded-full bg-slate-100 px-3 py-1.5">
+              {conversations.length} conversation{conversations.length === 1 ? "" : "s"}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5">
+              {suggestions.length} suggested question{suggestions.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid min-h-[calc(100vh-240px)] grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside
+          className={`${
+            isSidebarOpen ? "flex" : "hidden"
+          } order-2 min-h-[240px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm lg:order-1 lg:flex`}
+        >
         <div className="border-b border-slate-200 bg-slate-50/80 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -683,7 +734,7 @@ const MediGuideChatTab = ({
             </div>
             <button
               type="button"
-              onClick={onNewConversation}
+              onClick={handleCreateConversation}
               className="inline-flex items-center gap-2 rounded-full bg-med-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-med-secondary"
             >
               <Plus className="h-4 w-4" />
@@ -718,7 +769,7 @@ const MediGuideChatTab = ({
                       <div className="flex items-start justify-between gap-2">
                         <button
                           type="button"
-                          onClick={() => onSelectConversation(conversation.id)}
+                          onClick={() => handleSelectConversation(conversation.id)}
                           className="min-w-0 flex-1 text-left"
                         >
                           <p className="truncate text-sm font-semibold text-slate-900">
@@ -760,7 +811,7 @@ const MediGuideChatTab = ({
                 <button
                   key={`${suggestion}-${index}`}
                   type="button"
-                  onClick={() => onSuggestedQuestion(suggestion)}
+                  onClick={() => handleSuggestedQuestionClick(suggestion)}
                   className="w-full rounded-2xl border border-blue-200 bg-white px-3 py-2 text-left text-sm text-blue-900 transition hover:bg-blue-50"
                 >
                   {suggestion}
@@ -769,19 +820,19 @@ const MediGuideChatTab = ({
             </div>
           </div>
         </div>
-      </aside>
+        </aside>
 
-      <section className="flex min-h-[calc(100vh-260px)] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-6 py-5">
+        <section className="order-1 flex min-h-[calc(100vh-240px)] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm lg:order-2">
+        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
               <Brain className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
                 {activeConversation?.title || "MediGuide Chat"}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs text-slate-500 sm:text-sm">
                 Text, images, videos, audio, PDFs, and text documents in one clinical thread
               </p>
             </div>
@@ -795,11 +846,11 @@ const MediGuideChatTab = ({
                 <div
                   key={message.id}
                   className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
+                  message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
-                    className={`max-w-3xl rounded-[28px] border px-5 py-4 shadow-sm ${
+                    className={`max-w-[92%] rounded-[28px] border px-4 py-4 shadow-sm sm:max-w-3xl sm:px-5 ${
                       message.role === "user"
                         ? "border-med-primary bg-med-primary text-white"
                         : message.isError
@@ -929,8 +980,8 @@ const MediGuideChatTab = ({
                 onKeyDown={handleComposerKeyDown}
                 placeholder="Message MediGuide AI about symptoms, differential diagnosis, treatment options, or ask it to review attachments, create a visual summary, or generate a document..."
                 disabled={isConsulting}
-                rows={5}
-                className="min-h-[140px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+                rows={4}
+                className="min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:min-h-[140px]"
               />
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -960,7 +1011,7 @@ const MediGuideChatTab = ({
                 <button
                   type="submit"
                   disabled={isConsulting || !canSend}
-                  className="inline-flex h-12 w-12 items-center justify-center self-end rounded-full bg-med-primary text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-12 items-center justify-center gap-2 self-stretch rounded-full bg-med-primary px-5 text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60 sm:w-12 sm:self-end sm:px-0"
                   aria-label="Send message"
                   title="Send message"
                 >
@@ -969,12 +1020,16 @@ const MediGuideChatTab = ({
                   ) : (
                     <Send className="h-5 w-5" />
                   )}
+                  <span className="text-sm font-semibold sm:hidden">
+                    {isConsulting ? "Sending" : "Send"}
+                  </span>
                 </button>
               </div>
             </div>
           </form>
         </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 };

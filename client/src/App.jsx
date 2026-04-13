@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -13,22 +13,27 @@ import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
-    <div className="min-h-screen bg-med-bg text-med-text flex flex-col font-sans">
-      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-med-primary to-med-accent flex items-center justify-center text-white font-bold text-xl shadow-md">
+    <div className="flex min-h-screen flex-col bg-med-bg font-sans text-med-text">
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/85 shadow-sm backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-med-primary to-med-accent text-xl font-bold text-white shadow-md">
               M
             </div>
-            <span className="font-extrabold text-2xl text-med-dark tracking-tight">
-              MediGuide
-            </span>
-          </div>
+            <div className="min-w-0">
+              <span className="block truncate text-xl font-extrabold tracking-tight text-med-dark sm:text-2xl">
+                MediGuide
+              </span>
+              <span className="hidden text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 sm:block">
+                AI-assisted health support
+              </span>
+            </div>
+          </Link>
           <Navbar />
         </div>
       </header>
 
-      <main className="grow flex flex-col">
+      <main className="grow flex flex-col overflow-x-clip">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
