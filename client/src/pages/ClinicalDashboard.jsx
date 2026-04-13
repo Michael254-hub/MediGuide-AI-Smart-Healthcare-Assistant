@@ -588,26 +588,6 @@ const ClinicalDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-cyan-50">
-      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-gradient-to-br from-med-primary to-med-accent p-2.5 shadow-lg shadow-sky-200/50">
-              <Brain className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-med-dark">MediGuide AI</h1>
-              <p className="text-sm text-slate-500">
-                Gemini-powered clinical conversations, files, and patient guidance
-              </p>
-            </div>
-          </div>
-          <div className="hidden items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 md:flex">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-700">Google Gemini</span>
-          </div>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <MediGuideChatTab
           activeConversation={activeConversation}
@@ -689,9 +669,6 @@ const MediGuideChatTab = ({
               New
             </button>
           </div>
-          <p className="mt-3 text-sm text-slate-500">
-            Saved MediGuide AI threads live here separately from assessment history.
-          </p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
@@ -775,48 +752,17 @@ const MediGuideChatTab = ({
 
       <section className="flex min-h-[calc(100vh-260px)] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-6 py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
-                  <Brain className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {activeConversation?.title || "MediGuide Chat"}
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    Text, images, videos, PDFs, and text documents in one clinical thread
-                  </p>
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
+              <Brain className="h-5 w-5" />
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Patient
-                </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">
-                  {patient?.name || "Unavailable"}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Context
-                </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">
-                  {patient?.age ? `${patient.age} years` : "N/A"}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Formats
-                </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">
-                  Image, video, document
-                </div>
-              </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                {activeConversation?.title || "MediGuide Chat"}
+              </h2>
+              <p className="text-sm text-slate-500">
+                Text, images, videos, PDFs, and text documents in one clinical thread
+              </p>
             </div>
           </div>
         </div>
@@ -927,59 +873,75 @@ const MediGuideChatTab = ({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4 shadow-inner shadow-slate-100">
+          <form onSubmit={handleSubmit}>
+            <div className="rounded-[30px] border-2 border-sky-200 bg-white p-4 shadow-lg shadow-sky-100/50">
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                  <MessageCircle className="h-3.5 w-3.5 text-slate-500" />
+                  Text
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                  <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                  Images
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                  <Video className="h-3.5 w-3.5 text-slate-500" />
+                  Videos
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                  Documents
+                </span>
+              </div>
+
               <textarea
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
                 placeholder="Message MediGuide AI about symptoms, differential diagnosis, treatment options, or ask it to review attachments..."
                 disabled={isConsulting}
-                rows={3}
-                className="w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+                rows={5}
+                className="min-h-[140px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
               />
-            </div>
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  ref={attachmentInputRef}
-                  type="file"
-                  accept={ATTACHMENT_ACCEPT}
-                  multiple
-                  className="hidden"
-                  onChange={onUploadAttachments}
-                />
-                <button
-                  type="button"
-                  onClick={() => attachmentInputRef.current?.click()}
-                  disabled={isConsulting || draftAttachments.length >= MAX_ATTACHMENTS}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Paperclip className="h-4 w-4" />
-                  Add attachments
-                </button>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1">Images</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1">Videos</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1">
-                    PDF / TXT / CSV / JSON
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-3">
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    accept={ATTACHMENT_ACCEPT}
+                    multiple
+                    className="hidden"
+                    onChange={onUploadAttachments}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={isConsulting || draftAttachments.length >= MAX_ATTACHMENTS}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Add attachments
+                  </button>
+                  <span className="text-xs text-slate-500">
+                    Supports images, videos, PDFs, TXT, CSV, and JSON
                   </span>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={isConsulting || !canSend}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-med-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isConsulting ? (
-                  <Loader className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                Send to MediGuide AI
-              </button>
+                <button
+                  type="submit"
+                  disabled={isConsulting || !canSend}
+                  className="inline-flex h-12 w-12 items-center justify-center self-end rounded-full bg-med-primary text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Send message"
+                  title="Send message"
+                >
+                  {isConsulting ? (
+                    <Loader className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </div>
