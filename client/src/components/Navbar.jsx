@@ -275,10 +275,10 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={() => setIsProfileOpen((current) => !current)}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-left hover:border-slate-300 hover:bg-slate-100 transition-all"
+                  className="flex w-[min(18rem,28vw)] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-left transition-all hover:border-slate-300 hover:bg-slate-100"
                 >
                   <UserCircle2 className="h-9 w-9 shrink-0 text-med-primary" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold text-slate-800">
                       {user?.name || "Profile"}
                     </div>
@@ -294,8 +294,9 @@ const Navbar = () => {
                 </button>
 
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-200/70">
+                  <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100vh-6rem)] overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-200/70">
                     <ProfilePanelContent
+                      className="max-h-[calc(100vh-8.5rem)]"
                       patientProfileDetails={patientProfileDetails}
                       patientProfileLabel={patientProfileLabel}
                       primaryContact={primaryContact}
@@ -439,6 +440,7 @@ const Navbar = () => {
 };
 
 const ProfilePanelContent = ({
+  className = "",
   user,
   primaryContact,
   verified,
@@ -449,131 +451,137 @@ const ProfilePanelContent = ({
   onViewAssessmentHistory,
   onLogout,
 }) => (
-  <>
-    <div className="flex items-start gap-4">
-      <UserCircle2 className="h-14 w-14 shrink-0 text-med-primary" />
-      <div className="min-w-0">
-        <div className="truncate text-base font-bold text-slate-900">{user?.name}</div>
-        <div className="truncate text-sm text-slate-500">{primaryContact}</div>
-        <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-600">
-          <BadgeCheck className="h-3.5 w-3.5" />
-          {user?.role || "patient"}
+  <div className={`flex h-full flex-col ${className}`}>
+    <div className="overflow-y-auto pr-1">
+      <div className="rounded-3xl bg-slate-50 p-4">
+        <div className="flex items-start gap-4">
+          <UserCircle2 className="h-14 w-14 shrink-0 text-med-primary" />
+          <div className="min-w-0 flex-1">
+            <div className="break-words text-base font-bold text-slate-900">
+              {user?.name || "Profile"}
+            </div>
+            <div className="mt-1 break-all text-sm text-slate-500">{primaryContact}</div>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold capitalize text-slate-600 shadow-sm">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              {user?.role || "patient"}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div className="mt-5 space-y-3 rounded-2xl bg-slate-50 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-500">Account status</span>
-        <span
-          className={`inline-flex items-center gap-1 text-sm font-semibold ${
-            verified ? "text-emerald-600" : "text-amber-600"
-          }`}
-        >
-          {verified ? <ShieldCheck className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-          {verified ? "Verified" : "Pending"}
-        </span>
+      <div className="mt-4 space-y-3 rounded-2xl bg-slate-50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-slate-500">Account status</span>
+          <span
+            className={`inline-flex items-center gap-1 text-sm font-semibold ${
+              verified ? "text-emerald-600" : "text-amber-600"
+            }`}
+          >
+            {verified ? <ShieldCheck className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
+            {verified ? "Verified" : "Pending"}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-slate-500">Assessment profile</span>
+          <span
+            className={`text-sm font-semibold ${
+              profileState.complete
+                ? "text-emerald-600"
+                : profileState.complete === false
+                  ? "text-amber-600"
+                  : "text-slate-500"
+            }`}
+          >
+            {patientProfileLabel}
+          </span>
+        </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-sm text-slate-500">Primary contact</span>
+          <span className="max-w-[13rem] break-all text-right text-sm font-medium text-slate-700">
+            {primaryContact}
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-500">Assessment profile</span>
-        <span
-          className={`text-sm font-semibold ${
-            profileState.complete
-              ? "text-emerald-600"
-              : profileState.complete === false
-                ? "text-amber-600"
-                : "text-slate-500"
-          }`}
-        >
-          {patientProfileLabel}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-500">Primary contact</span>
-        <span className="max-w-[160px] truncate text-sm font-medium text-slate-700">
-          {primaryContact}
-        </span>
-      </div>
-    </div>
-
-    {user?.role !== "admin" && verified && (
-      <div className="mt-4 rounded-2xl border border-slate-200 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h4 className="text-sm font-bold text-slate-900">Patient profile</h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Structured intake details shown inside the main profile.
-            </p>
+      {user?.role !== "admin" && verified && (
+        <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Patient profile</h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Structured intake details shown inside the main profile.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onEditProfile}
+              className="rounded-full bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-200"
+            >
+              {profileState.complete ? "Update" : "Complete"}
+            </button>
           </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="text-xs text-slate-500">Age</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {patientProfileDetails?.demographics?.age ?? "Not set"}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="text-xs text-slate-500">Sex at birth</div>
+              <div className="text-sm font-semibold capitalize text-slate-800">
+                {patientProfileDetails?.demographics?.sexAtBirth ?? "Not set"}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="text-xs text-slate-500">Medications</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {patientProfileDetails?.profileSummary?.medicationCount ?? 0}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="text-xs text-slate-500">Allergies</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {patientProfileDetails?.profileSummary?.allergyCount ?? 0}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {user?.role !== "admin" && verified && (
+        <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+              <ClipboardList className="h-4 w-4" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Assessment history</h4>
+              <p className="text-xs text-slate-500">
+                Past assessments, timestamps, and key clinical responses.
+              </p>
+            </div>
+          </div>
+
           <button
             type="button"
-            onClick={onEditProfile}
-            className="rounded-full bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-200"
+            onClick={onViewAssessmentHistory}
+            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-colors hover:bg-slate-100"
           >
-            {profileState.complete ? "Update" : "Complete"}
+            <div className="text-sm font-semibold text-slate-900">View assessment history</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Open the full record of all past assessments, timestamps, key clinical
+              questions, and patient responses.
+            </div>
           </button>
         </div>
+      )}
+    </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-slate-50 px-3 py-3">
-            <div className="text-xs text-slate-500">Age</div>
-            <div className="text-sm font-semibold text-slate-800">
-              {patientProfileDetails?.demographics?.age ?? "Not set"}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-3">
-            <div className="text-xs text-slate-500">Sex at birth</div>
-            <div className="text-sm font-semibold capitalize text-slate-800">
-              {patientProfileDetails?.demographics?.sexAtBirth ?? "Not set"}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-3">
-            <div className="text-xs text-slate-500">Medications</div>
-            <div className="text-sm font-semibold text-slate-800">
-              {patientProfileDetails?.profileSummary?.medicationCount ?? 0}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-3">
-            <div className="text-xs text-slate-500">Allergies</div>
-            <div className="text-sm font-semibold text-slate-800">
-              {patientProfileDetails?.profileSummary?.allergyCount ?? 0}
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {user?.role !== "admin" && verified && (
-      <div className="mt-4 rounded-2xl border border-slate-200 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-            <ClipboardList className="h-4 w-4" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-slate-900">Assessment history</h4>
-            <p className="text-xs text-slate-500">
-              Past assessments, timestamps, and key clinical responses.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onViewAssessmentHistory}
-          className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-colors hover:bg-slate-100"
-        >
-          <div className="text-sm font-semibold text-slate-900">View assessment history</div>
-          <div className="mt-1 text-xs text-slate-500">
-            Open the full record of all past assessments, timestamps, key clinical
-            questions, and patient responses.
-          </div>
-        </button>
-      </div>
-    )}
-
-    <div className="mt-4 border-t border-slate-200 pt-4">
+    <div className="mt-4 border-t border-slate-200 bg-white pt-4">
       <button
         type="button"
         onClick={onLogout}
@@ -583,7 +591,7 @@ const ProfilePanelContent = ({
         Sign Out
       </button>
     </div>
-  </>
+  </div>
 );
 
 export default Navbar;
