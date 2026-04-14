@@ -5,6 +5,7 @@
 
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const env = require('../config/env');
+const { buildNonCriticalGuidanceContext } = require('./nonCriticalGuidanceService');
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = env.geminiModel;
@@ -179,6 +180,7 @@ Safety requirements:
 5. Highlight medication allergies or comorbidity considerations when directly relevant.
 6. Clearly flag red-flag symptoms that should prompt urgent or emergency care escalation.
 7. Avoid excessive jargon. Use plain, supportive language.
+8. When an evidence-based non-critical guidance reference is supplied, use matched examples directly and use them as analogies for similar non-critical adult conditions without adding unsupported details.
 
 Return valid JSON only with this exact shape:
 {
@@ -448,6 +450,7 @@ const createSymptomAssessmentMessage = (
           })
           .join('\n')
       : '- No follow-up responses were provided';
+  const nonCriticalGuidanceContext = buildNonCriticalGuidanceContext(submissionData);
 
   let message = `PATIENT CLINICAL CONTEXT:
 ${clinicalContext}
@@ -468,6 +471,10 @@ BASELINE TRIAGE RESULT:
 TASK:
 Enhance the patient-facing symptom assessment summary and recommendations using the supplied context.
 Keep the baseline triage urgency intact while making the recommendation more specific, grounded, and helpful.`;
+
+  if (nonCriticalGuidanceContext) {
+    message += `\n\n${nonCriticalGuidanceContext}`;
+  }
 
   if (attachments.length > 0) {
     message += `\n\nATTACHED SYMPTOM IMAGES:
@@ -757,6 +764,7 @@ module.exports = {
   consultWithAIStream,
   generateSuggestions,
   analyzeSymptomImage,
+  createSymptomAssessmentMessage,
   ensureMediChatClosing,
   MEDICHAT_MANDATORY_CLOSING,
   CLINICAL_SYSTEM_PROMPT,

@@ -16,6 +16,7 @@ jest.mock('@google/generative-ai', () => ({
 }));
 
 const {
+  createSymptomAssessmentMessage,
   ensureMediChatClosing,
   MEDICHAT_MANDATORY_CLOSING,
 } = require('../services/aiConsultationService');
@@ -34,5 +35,27 @@ describe('aiConsultationService MediChat safety helpers', () => {
     const result = ensureMediChatClosing(original);
 
     expect(result).toBe(original);
+  });
+
+  it('should include evidence-based non-critical guidance in the symptom assessment prompt', () => {
+    const message = createSymptomAssessmentMessage(
+      'No major chronic disease history provided.',
+      {
+        symptoms: 'Runny nose, sore throat, and cough',
+        duration: '3 days',
+        severity: 'mild',
+        followUpResponses: [{ question: 'Do you have shortness of breath?', answer: 'no' }],
+      },
+      {
+        level: 'LOW',
+        recommendation: 'Rest, monitor symptoms, and seek care if things worsen.',
+        flaggedEmergency: false,
+      }
+    );
+
+    expect(message).toContain('EVIDENCE-BASED NON-CRITICAL GUIDANCE REFERENCE:');
+    expect(message).toContain('- Common cold:');
+    expect(message).toContain('Safety-net anchors:');
+    expect(message).toContain('Matched cues: runny nose, sore throat, cough.');
   });
 });
