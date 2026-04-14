@@ -30,18 +30,19 @@ const normalizeSeverityScore = (severity) => {
   return severityScoreMap[normalizedSeverity] ?? 0;
 };
 
+const containsKeyword = (text, keywords) => keywords.some((keyword) => text.includes(keyword));
+
 /**
  * Classify triage risk from symptom text, duration, and severity.
  *
  * @param {string} symptomsText - Free-text description of symptoms.
  * @param {string|number} [duration=0] - Duration label or approximate days.
- * @param {string|number} [severity=0] - Severity label or approximate score.
+ * @param {string|number} [_severity=0] - Severity label or approximate score.
  * @returns {{ level: string, recommendation: string, flaggedEmergency: boolean }}
  */
-const classifyRisk = (symptomsText, duration = 0, severity = 0) => {
+const classifyRisk = (symptomsText, duration = 0, _severity = 0) => {
   const text = typeof symptomsText === 'string' ? symptomsText.toLowerCase() : '';
   const normalizedDurationDays = normalizeDurationDays(duration);
-  const normalizedSeverityScore = normalizeSeverityScore(severity);
 
   const emergencyKeywords = [
     'chest pain',
@@ -60,20 +61,29 @@ const classifyRisk = (symptomsText, duration = 0, severity = 0) => {
     'weakness',
     'numbness',
   ];
+  const seriousConditionKeywords = [
+    'cancer',
+    'tumor',
+    'tumour',
+    'lymphoma',
+    'leukemia',
+    'leukaemia',
+    'metastatic',
+    'metastasis',
+    'chemotherapy',
+  ];
   const highKeywords = ['severe pain', 'high fever', 'vision loss', 'confusion', 'fainted', 'almost fainted'];
   const mediumKeywords = ['fever', 'headache', 'vomiting', 'nausea', 'dizziness'];
 
   // --- Step 1: Keyword matching ---
 
   // Emergency keywords always win regardless of severity/duration
-  for (const keyword of emergencyKeywords) {
-    if (text.includes(keyword)) {
-      return {
-        level: 'EMERGENCY',
-        recommendation: '⚠ Possible medical emergency detected. Please visit the nearest hospital immediately or call emergency services.',
-        flaggedEmergency: true
-      };
-    }
+  if (containsKeyword(text, emergencyKeywords) || containsKeyword(text, seriousConditionKeywords)) {
+    return {
+      level: 'EMERGENCY',
+      recommendation: '⚠ Possible medical emergency detected. Please visit the nearest hospital immediately or call emergency services.',
+      flaggedEmergency: true
+    };
   }
 
   let keywordLevel = 'LOW';
@@ -95,20 +105,13 @@ const classifyRisk = (symptomsText, duration = 0, severity = 0) => {
     }
   }
 
-  // --- Step 2: Numeric promotion using severity and duration ---
+  // --- Step 2: Duration promotion ---
 
   const levels = ['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'];
   const bump = (current, target) =>
     levels.indexOf(target) > levels.indexOf(current) ? target : current;
 
   let level = keywordLevel;
-
-  // Severity 9–10 → at least EMERGENCY; severity 8 → at least HIGH
-  if (normalizedSeverityScore >= 9) {
-    level = bump(level, 'EMERGENCY');
-  } else if (normalizedSeverityScore >= 8) {
-    level = bump(level, 'HIGH');
-  }
 
   // Symptoms lasting more than a week that haven't self-resolved → escalate one tier
   if (normalizedDurationDays > 7) {
@@ -121,7 +124,7 @@ const classifyRisk = (symptomsText, duration = 0, severity = 0) => {
   const recommendations = {
     EMERGENCY: '⚠ Possible medical emergency detected. Please visit the nearest hospital immediately or call emergency services.',
     HIGH:      'Please seek medical attention from a doctor as soon as possible.',
-    MEDIUM:    'Please consult with a healthcare professional or visit an urgent care center.',
+    MEDIUM:    'Home-based care may be appropriate for now. Rest, stay hydrated, and monitor your symptoms closely. Seek medical review if things worsen or do not improve.',
     LOW:       'Your symptoms appear mild. Please rest, stay hydrated, and monitor your condition. Consult a doctor if symptoms worsen.'
   };
 

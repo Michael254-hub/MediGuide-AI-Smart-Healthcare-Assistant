@@ -31,17 +31,17 @@ describe('Triage Risk Classifier Engine', () => {
     expect(result.level).toBe('LOW');
   });
 
-  // --- New severity & duration promotion tests ---
+  // --- Duration promotion and serious-condition detection tests ---
 
-  it('should promote to EMERGENCY when severity is 9, even for mild symptoms', () => {
+  it('should not promote to EMERGENCY from severity alone for otherwise non-critical symptoms', () => {
     const result = classifyRisk('My throat is a bit scratchy', 2, 9);
-    expect(result.level).toBe('EMERGENCY');
-    expect(result.flaggedEmergency).toBe(true);
+    expect(result.level).toBe('LOW');
+    expect(result.flaggedEmergency).toBe(false);
   });
 
-  it('should promote to at least HIGH when severity is 8', () => {
+  it('should not promote to HIGH from severity alone for otherwise non-critical symptoms', () => {
     const result = classifyRisk('I have a runny nose', 1, 8);
-    expect(result.level).toBe('HIGH');
+    expect(result.level).toBe('LOW');
   });
 
   it('should bump level by one tier when duration exceeds 7 days', () => {
@@ -62,8 +62,14 @@ describe('Triage Risk Classifier Engine', () => {
     expect(result.level).toBe('MEDIUM');
   });
 
-  it('should normalize severe string severity values from the symptom form', () => {
+  it('should keep severe string severity values from the symptom form in home-care routing when no red flags are present', () => {
     const result = classifyRisk('I have a mild rash', '1-3 days', 'severe');
+    expect(result.level).toBe('LOW');
+    expect(result.flaggedEmergency).toBe(false);
+  });
+
+  it('should identify cancer-related cases as EMERGENCY', () => {
+    const result = classifyRisk('I was told I may have cancer and now I feel very unwell');
     expect(result.level).toBe('EMERGENCY');
     expect(result.flaggedEmergency).toBe(true);
   });

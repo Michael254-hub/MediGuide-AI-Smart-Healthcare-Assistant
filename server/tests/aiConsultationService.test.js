@@ -57,5 +57,7 @@ describe('aiConsultationService MediChat safety helpers', () => {
     expect(message).toContain('- Common cold:');
     expect(message).toContain('Safety-net anchors:');
     expect(message).toContain('Matched cues: runny nose, sore throat, cough.');
+    expect(message).toContain('For LOW or MEDIUM baseline cases, keep the recommendations home-based and provide 3 to 5 practical self-care or monitoring steps.');
+    expect(message).toContain('Only recommend emergency care when there are red-flag symptoms or serious-condition cues such as cancer.');
   });
 });

@@ -35,6 +35,13 @@ const DEFAULT_SYMPTOM_ASSESSMENT = {
   redFlags: [],
   followUpPlan: 'Monitor symptoms closely and seek medical attention sooner if symptoms worsen or new warning signs appear.',
 };
+const DEFAULT_HOME_CARE_RECOMMENDATIONS = [
+  'Rest and reduce strenuous activity while your symptoms settle.',
+  'Drink enough water or clear fluids to stay well hydrated.',
+  'Use simple comfort measures that fit your symptoms, such as warm fluids, light meals, or gentle skin care.',
+  'Monitor for worsening symptoms, new warning signs, or difficulty managing normal daily activities.',
+  'Arrange medical review if symptoms are not improving over the next 24 to 48 hours.',
+];
 
 const MEDICHAT_SYSTEM_PROMPT = `You are MediChat, the AI health education assistant inside the MediGuide platform.
 
@@ -192,10 +199,14 @@ Return valid JSON only with this exact shape:
 }
 
 Additional formatting rules:
-- Keep recommendations to 2-5 items
+- Keep recommendations to 3-5 items for LOW or MEDIUM baseline cases
+- Keep recommendations to 2-5 items for HIGH or EMERGENCY baseline cases
 - Keep red flags to 0-5 items
+- If baseline risk is LOW or MEDIUM, focus recommendations on practical home-based care and monitoring.
+- Do not suggest emergency care for LOW or MEDIUM cases solely because the submitted severity sounds high.
 - If baseline risk is EMERGENCY, emphasize immediate emergency care
 - If baseline risk is HIGH, emphasize prompt same-day or urgent medical review
+- Serious-condition cues such as cancer, tumor, lymphoma, leukemia, metastatic disease, or chemotherapy should be treated as emergency escalation cues in this workflow.
 - If context is limited, acknowledge that limitation briefly`;
 
 const describeAttachment = (attachment) => {
@@ -373,11 +384,47 @@ const parseJsonArray = (value) => {
   return [];
 };
 
-const parseSymptomAssessmentResponse = (rawText) => {
+const isHomeCareBaseline = (baselineAssessment = {}) =>
+  baselineAssessment.level === 'LOW' || baselineAssessment.level === 'MEDIUM';
+
+const buildDefaultSymptomAssessment = (baselineAssessment = {}) => {
+  if (isHomeCareBaseline(baselineAssessment)) {
+    return {
+      ...DEFAULT_SYMPTOM_ASSESSMENT,
+      recommendations: DEFAULT_HOME_CARE_RECOMMENDATIONS.slice(0, 4),
+    };
+  }
+
+  return DEFAULT_SYMPTOM_ASSESSMENT;
+};
+
+const normalizeAssessmentRecommendations = (recommendations, baselineAssessment = {}) => {
+  const normalizedRecommendations = parseJsonArray(recommendations).slice(0, 5);
+
+  if (!isHomeCareBaseline(baselineAssessment)) {
+    return normalizedRecommendations;
+  }
+
+  const mergedRecommendations = [...normalizedRecommendations];
+
+  for (const fallbackRecommendation of DEFAULT_HOME_CARE_RECOMMENDATIONS) {
+    if (mergedRecommendations.length >= 5) {
+      break;
+    }
+
+    if (!mergedRecommendations.includes(fallbackRecommendation)) {
+      mergedRecommendations.push(fallbackRecommendation);
+    }
+  }
+
+  return mergedRecommendations.slice(0, Math.max(3, normalizedRecommendations.length || 3));
+};
+
+const parseSymptomAssessmentResponse = (rawText, baselineAssessment = {}) => {
   const parsed = extractJsonObject(rawText);
 
   if (!parsed || typeof parsed !== 'object') {
-    return DEFAULT_SYMPTOM_ASSESSMENT;
+    return buildDefaultSymptomAssessment(baselineAssessment);
   }
 
   return {
@@ -389,7 +436,7 @@ const parseSymptomAssessmentResponse = (rawText) => {
       typeof parsed.clinicalImpression === 'string' && parsed.clinicalImpression.trim()
         ? parsed.clinicalImpression.trim()
         : DEFAULT_SYMPTOM_ASSESSMENT.clinicalImpression,
-    recommendations: parseJsonArray(parsed.recommendations).slice(0, 5),
+    recommendations: normalizeAssessmentRecommendations(parsed.recommendations, baselineAssessment),
     redFlags: parseJsonArray(parsed.redFlags).slice(0, 5),
     followUpPlan:
       typeof parsed.followUpPlan === 'string' && parsed.followUpPlan.trim()
@@ -470,7 +517,10 @@ BASELINE TRIAGE RESULT:
 
 TASK:
 Enhance the patient-facing symptom assessment summary and recommendations using the supplied context.
-Keep the baseline triage urgency intact while making the recommendation more specific, grounded, and helpful.`;
+Keep the baseline triage urgency intact while making the recommendation more specific, grounded, and helpful.
+
+For LOW or MEDIUM baseline cases, keep the recommendations home-based and provide 3 to 5 practical self-care or monitoring steps.
+Only recommend emergency care when there are red-flag symptoms or serious-condition cues such as cancer.`;
 
   if (nonCriticalGuidanceContext) {
     message += `\n\n${nonCriticalGuidanceContext}`;
@@ -693,7 +743,7 @@ const assessSymptomsWithAI = async (
 
     return {
       success: true,
-      assessment: parseSymptomAssessmentResponse(response.response.text()),
+      assessment: parseSymptomAssessmentResponse(response.response.text(), baselineAssessment),
       usage: {
         inputTokens: response.response.usageMetadata?.promptTokenCount || 0,
         outputTokens: response.response.usageMetadata?.candidatesTokenCount || 0,
@@ -704,7 +754,7 @@ const assessSymptomsWithAI = async (
     return {
       success: false,
       error: error.message,
-      assessment: DEFAULT_SYMPTOM_ASSESSMENT,
+      assessment: buildDefaultSymptomAssessment(baselineAssessment),
     };
   }
 };

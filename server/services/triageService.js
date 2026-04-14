@@ -12,6 +12,14 @@ const {
 const { assessSymptomsWithAI } = require('./aiConsultationService');
 
 class TriageService {
+  getRecommendationLead(baselineAssessment) {
+    if (baselineAssessment.level === 'LOW' || baselineAssessment.level === 'MEDIUM') {
+      return 'Home-based care is appropriate at this stage. Follow the care steps below and seek medical attention sooner if warning signs appear or symptoms get worse.';
+    }
+
+    return baselineAssessment.recommendation;
+  }
+
   buildAssessmentQuestionResponses(submission) {
     const baseResponses = [
       {
@@ -67,7 +75,7 @@ class TriageService {
   }
 
   formatEnhancedRecommendation(baselineAssessment, aiAssessment) {
-    const lines = [baselineAssessment.recommendation];
+    const lines = [this.getRecommendationLead(baselineAssessment)];
 
     if (aiAssessment.patientSummary) {
       lines.push(`Assessment summary: ${aiAssessment.patientSummary}`);

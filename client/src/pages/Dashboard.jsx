@@ -1,21 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Clock, PlusCircle, Stethoscope, Trash2 } from 'lucide-react';
 import { symptomAPI } from '../services/api';
 import RiskAlert from '../components/RiskAlert';
 import { useAuthStore } from '../store/authStore';
 
+const sortAssessments = (records = []) =>
+  [...records].sort((a, b) => {
+    const aTime = new Date(
+      a.assessedAt || a.submittedAt || a.submission?.submittedAt || a.submission?.submitted_at || 0
+    ).getTime();
+    const bTime = new Date(
+      b.assessedAt || b.submittedAt || b.submission?.submittedAt || b.submission?.submitted_at || 0
+    ).getTime();
+
+    return bTime - aTime;
+  });
+
+const getAssessmentTimestamp = (record) =>
+  record.assessedAt ||
+  record.submittedAt ||
+  record.submission?.submittedAt ||
+  record.submission?.submitted_at ||
+  null;
+
+const getAssessmentTitle = (record) => {
+  const explicitSymptoms = record.submission?.symptoms?.trim();
+
+  if (explicitSymptoms) {
+    return explicitSymptoms;
+  }
+
+  const symptomsResponse = (record.questionResponses || []).find((item) =>
+    item.question?.toLowerCase().includes('symptoms')
+  );
+
+  return symptomsResponse?.response?.trim() || 'Assessment details';
+};
+
 const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingHistoryId, setDeletingHistoryId] = useState(null);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const user = useAuthStore((state) => state.user);
+  const activeDetailRef = useRef(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
         const response = await symptomAPI.getSymptomHistory();
-        setHistory(response.data.data);
+        const sortedHistory = sortAssessments(response.data.data || []);
+        setHistory(sortedHistory);
+        setSelectedHistoryId((currentSelectedId) =>
+          currentSelectedId && sortedHistory.some((record) => getRecordId(record) === currentSelectedId)
+            ? currentSelectedId
+            : sortedHistory[0]
+              ? getRecordId(sortedHistory[0])
+              : null
+        );
       } catch (error) {
         console.error('Failed to fetch history:', error);
       } finally {
@@ -48,6 +91,18 @@ const Dashboard = () => {
 
   const getRecordId = (record) => record.submission?.id || record.id;
 
+  const handleSelectHistoryItem = (recordId) => {
+    setSelectedHistoryId(recordId);
+  };
+
+  useEffect(() => {
+    if (!selectedHistoryId) {
+      return;
+    }
+
+    activeDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedHistoryId]);
+
   const handleDeleteHistoryItem = async (record) => {
     const recordId = getRecordId(record);
 
@@ -66,9 +121,21 @@ const Dashboard = () => {
     try {
       setDeletingHistoryId(recordId);
       await symptomAPI.deleteHistoryItem(recordId);
-      setHistory((previousHistory) =>
-        previousHistory.filter((historyItem) => getRecordId(historyItem) !== recordId)
-      );
+      setHistory((previousHistory) => {
+        const nextHistory = previousHistory.filter(
+          (historyItem) => getRecordId(historyItem) !== recordId
+        );
+
+        setSelectedHistoryId((currentSelectedId) => {
+          if (currentSelectedId !== recordId) {
+            return currentSelectedId;
+          }
+
+          return nextHistory[0] ? getRecordId(nextHistory[0]) : null;
+        });
+
+        return nextHistory;
+      });
     } catch (error) {
       console.error('Failed to delete assessment history item:', error);
       window.alert(
@@ -87,6 +154,9 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  const selectedRecord =
+    history.find((record) => getRecordId(record) === selectedHistoryId) || history[0] || null;
 
   return (
     <div className="mx-auto w-full max-w-7xl animate-fade-in px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -153,81 +223,173 @@ const Dashboard = () => {
           </Link>
         </div>
       ) : (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-med-dark mb-4 border-b pb-2">All Assessments</h2>
-          {history.map((record) => (
-            <div
-              key={getRecordId(record)}
-              className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-6"
-            >
-              <div className="mb-6 flex flex-col gap-4 border-b border-slate-50 pb-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-slate-500">
-                    <Clock className="w-5 h-5 text-med-primary" />
-                    <span className="font-medium">
-                      Submitted:{" "}
-                      {formatDate(
-                        record.submittedAt ||
-                          record.submission?.submittedAt ||
-                          record.submission?.submitted_at
-                      )}
-                    </span>
-                  </div>
-                  {record.assessedAt && (
-                    <div className="text-sm text-slate-400">
-                      Assessed: {formatDate(record.assessedAt)}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`inline-flex w-max items-center rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wider ${getRiskColor(
-                      record.triageLog.riskLevel || record.triageLog.risk_level
-                    )}`}
-                  >
-                    {(record.triageLog.riskLevel || record.triageLog.risk_level)} RISK
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteHistoryItem(record)}
-                    disabled={deletingHistoryId === getRecordId(record)}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Delete assessment history item"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {deletingHistoryId === getRecordId(record) ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              </div>
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)]">
+            <div className="border-b border-slate-200 bg-slate-50/90 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                Assessment history
+              </p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">Previous assessments</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Latest assessments appear first. Tap a title to open and highlight it.
+              </p>
+            </div>
 
-              <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Clinical Questions and Responses</h4>
-                  <div className="space-y-4">
-                    {(record.questionResponses || []).map((item, index) => (
-                      <div key={`${record.id || index}-${index}`} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                          {item.question}
+            <div className="max-h-[28rem] space-y-3 overflow-y-auto p-3 xl:max-h-[calc(100vh-13rem)]">
+              {history.map((record, index) => {
+                const recordId = getRecordId(record);
+                const isSelected = recordId === selectedHistoryId;
+                const riskLevel = record.triageLog.riskLevel || record.triageLog.risk_level;
+
+                return (
+                  <button
+                    key={recordId}
+                    type="button"
+                    onClick={() => handleSelectHistoryItem(recordId)}
+                    className={`w-full rounded-2xl border p-4 text-left transition ${
+                      isSelected
+                        ? 'border-sky-300 bg-sky-50 shadow-sm ring-2 ring-sky-100'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            {index === 0 ? 'Latest' : `#${history.length - index}`}
+                          </span>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${getRiskColor(
+                              riskLevel
+                            )}`}
+                          >
+                            {riskLevel}
+                          </span>
                         </div>
-                        <p className="text-slate-700">
-                          {item.response || "No response recorded"}
+                        <p className="mt-3 break-words text-sm font-semibold leading-5 text-slate-900">
+                          {getAssessmentTitle(record)}
+                        </p>
+                        <p className="mt-2 text-xs text-slate-500">
+                          {formatDate(getAssessmentTimestamp(record))}
                         </p>
                       </div>
-                    ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          <section className="space-y-6">
+            <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-xl font-bold text-med-dark">Assessment details</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Only the selected assessment is shown here. Previous assessments remain in the sidebar.
+              </p>
+            </div>
+
+            {selectedRecord && (
+              <article
+                ref={activeDetailRef}
+                className="scroll-mt-24 rounded-[28px] border border-sky-300 bg-white p-4 shadow-lg shadow-sky-100/70 ring-2 ring-sky-100 transition-all sm:p-6"
+              >
+                <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        {getRecordId(selectedRecord) === getRecordId(history[0])
+                          ? 'Latest assessment'
+                          : 'Opened from history'}
+                      </span>
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-700">
+                        Selected
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                      {getAssessmentTitle(selectedRecord)}
+                    </h3>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 text-slate-500">
+                        <Clock className="h-5 w-5 text-med-primary" />
+                        <span className="font-medium">
+                          Submitted:{' '}
+                          {formatDate(
+                            selectedRecord.submittedAt ||
+                              selectedRecord.submission?.submittedAt ||
+                              selectedRecord.submission?.submitted_at
+                          )}
+                        </span>
+                      </div>
+                      {selectedRecord.assessedAt && (
+                        <div className="text-sm text-slate-400">
+                          Assessed: {formatDate(selectedRecord.assessedAt)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div
+                      className={`inline-flex w-max items-center rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wider ${getRiskColor(
+                        selectedRecord.triageLog.riskLevel || selectedRecord.triageLog.risk_level
+                      )}`}
+                    >
+                      {selectedRecord.triageLog.riskLevel || selectedRecord.triageLog.risk_level} RISK
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHistoryItem(selectedRecord)}
+                      disabled={deletingHistoryId === getRecordId(selectedRecord)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label="Delete assessment history item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingHistoryId === getRecordId(selectedRecord) ? 'Deleting...' : 'Delete'}
+                    </button>
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Clinical Assessment Record</h4>
-                  <RiskAlert 
-                    level={record.triageLog.riskLevel || record.triageLog.risk_level} 
-                    recommendation={record.triageLog.recommendation}
-                    flaggedEmergency={record.triageLog.flaggedEmergency ?? record.triageLog.flagged_emergency}
-                  />
+                <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+                  <div>
+                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Clinical questions and responses
+                    </h4>
+                    <div className="space-y-4">
+                      {(selectedRecord.questionResponses || []).map((item, questionIndex) => (
+                        <div
+                          key={`${selectedRecord.id || questionIndex}-${questionIndex}`}
+                          className="rounded-xl border border-slate-100 bg-slate-50 p-4"
+                        >
+                          <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                            {item.question}
+                          </div>
+                          <p className="text-slate-700">{item.response || 'No response recorded'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Clinical assessment record
+                    </h4>
+                    <RiskAlert
+                      level={
+                        selectedRecord.triageLog.riskLevel || selectedRecord.triageLog.risk_level
+                      }
+                      recommendation={selectedRecord.triageLog.recommendation}
+                      flaggedEmergency={
+                        selectedRecord.triageLog.flaggedEmergency ??
+                        selectedRecord.triageLog.flagged_emergency
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </article>
+            )}
+          </section>
         </div>
       )}
     </div>
