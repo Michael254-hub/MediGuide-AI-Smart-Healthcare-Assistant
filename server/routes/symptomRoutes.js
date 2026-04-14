@@ -1,5 +1,10 @@
 const express = require('express');
-const { getFollowUpQuestions, submitSymptoms, getHistory } = require('../controllers/symptomController');
+const {
+  getFollowUpQuestions,
+  submitSymptoms,
+  getHistory,
+  deleteHistoryItem,
+} = require('../controllers/symptomController');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validationMiddleware');
 const { followUpQuestionSchema, submitSymptomSchema } = require('../validations/symptomValidation');
@@ -18,5 +23,6 @@ router.post('/', protect, (req, res, next) => {
   });
 }, validate(submitSymptomSchema), submitSymptoms);
 router.get('/history', protect, getHistory);
+router.delete('/history/:submissionId', protect, deleteHistoryItem);
 
 module.exports = router;

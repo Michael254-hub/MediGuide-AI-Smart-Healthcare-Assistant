@@ -61,6 +61,35 @@ CREATE TABLE triage_logs (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE medichat_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL DEFAULT 'New conversation',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE medichat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES medichat_conversations(id) ON DELETE CASCADE,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
+  content TEXT NOT NULL,
+  attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
+  usage JSONB,
+  is_error BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE ai_user_memories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(50) NOT NULL,
+  memory_summary TEXT NOT NULL DEFAULT '',
+  preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+  recent_topics TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Create tasks table
 CREATE TABLE tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -130,3 +159,6 @@ CREATE INDEX idx_triage_logs_submission_id ON triage_logs(submission_id);
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX idx_medical_professional_applications_user_id ON medical_professional_applications(user_id);
 CREATE INDEX idx_medical_professional_applications_status ON medical_professional_applications(status);
+CREATE INDEX idx_medichat_conversations_user_id ON medichat_conversations(user_id, updated_at DESC);
+CREATE INDEX idx_medichat_messages_conversation_id ON medichat_messages(conversation_id, created_at ASC);
+CREATE INDEX idx_ai_user_memories_user_id ON ai_user_memories(user_id);

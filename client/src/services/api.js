@@ -68,6 +68,7 @@ export const symptomAPI = {
   getFollowUpQuestions: (data) => api.post('/symptoms/follow-up-questions', data),
   submitSymptoms: (data, config = {}) => api.post('/symptoms', data, config),
   getSymptomHistory: () => api.get('/symptoms/history'),
+  deleteHistoryItem: (id) => api.delete(`/symptoms/history/${id}`),
   getSingleSymptom: (id) => api.get(`/symptoms/${id}`),
 };
 
@@ -89,11 +90,27 @@ export const medicAPI = {
 // MediChat API methods
 export const mediChatAPI = {
   getPatientData: () => api.get('/medichat/patient-data'),
+  getConversationHistory: () => api.get('/medichat/history'),
+  importConversationHistory: (conversations) =>
+    api.post('/medichat/history/import', { conversations }),
+  deleteConversation: (conversationId) => api.delete(`/medichat/history/${conversationId}`),
   getSuggestions: () => api.get('/medichat/suggestions'),
-  sendMessage: ({ question, conversationHistory = [], attachments = [] }) => {
+  sendMessage: ({
+    question,
+    conversationId,
+    conversationTitle,
+    conversationHistory = [],
+    attachments = [],
+  }) => {
     if (attachments.length > 0) {
       const formData = new FormData();
       formData.append('question', question || '');
+      if (conversationId) {
+        formData.append('conversationId', conversationId);
+      }
+      if (conversationTitle) {
+        formData.append('conversationTitle', conversationTitle);
+      }
       formData.append('conversationHistory', JSON.stringify(conversationHistory));
       attachments.forEach((attachment) => {
         formData.append('attachments', attachment);
@@ -104,6 +121,8 @@ export const mediChatAPI = {
 
     return api.post('/medichat/consult', {
       question,
+      conversationId,
+      conversationTitle,
       conversationHistory,
     });
   },

@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Clock, PlusCircle, Stethoscope } from 'lucide-react';
-import api from '../services/api';
+import { Link } from 'react-router-dom';
+import { Activity, Clock, PlusCircle, Stethoscope, Trash2 } from 'lucide-react';
+import { symptomAPI } from '../services/api';
 import RiskAlert from '../components/RiskAlert';
 import { useAuthStore } from '../store/authStore';
 
 const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
+  const [deletingHistoryId, setDeletingHistoryId] = useState(null);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await api.get('/symptoms/history');
+        const response = await symptomAPI.getSymptomHistory();
         setHistory(response.data.data);
       } catch (error) {
         console.error('Failed to fetch history:', error);
@@ -43,6 +43,40 @@ const Dashboard = () => {
       case 'MEDIUM': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       case 'LOW':
       default: return 'bg-green-100 text-green-700 border-green-200';
+    }
+  };
+
+  const getRecordId = (record) => record.submission?.id || record.id;
+
+  const handleDeleteHistoryItem = async (record) => {
+    const recordId = getRecordId(record);
+
+    if (!recordId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Delete this assessment from your history? This action cannot be undone.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingHistoryId(recordId);
+      await symptomAPI.deleteHistoryItem(recordId);
+      setHistory((previousHistory) =>
+        previousHistory.filter((historyItem) => getRecordId(historyItem) !== recordId)
+      );
+    } catch (error) {
+      console.error('Failed to delete assessment history item:', error);
+      window.alert(
+        error.response?.data?.message ||
+          'We could not delete that assessment right now. Please try again.'
+      );
+    } finally {
+      setDeletingHistoryId(null);
     }
   };
 
@@ -123,7 +157,7 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-med-dark mb-4 border-b pb-2">All Assessments</h2>
           {history.map((record) => (
             <div
-              key={record.id || record.submission?.id}
+              key={getRecordId(record)}
               className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-6"
             >
               <div className="mb-6 flex flex-col gap-4 border-b border-slate-50 pb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -145,12 +179,24 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-                <div
-                  className={`inline-flex w-max items-center rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wider ${getRiskColor(
-                    record.triageLog.riskLevel || record.triageLog.risk_level
-                  )}`}
-                >
-                  {(record.triageLog.riskLevel || record.triageLog.risk_level)} RISK
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`inline-flex w-max items-center rounded-full border px-4 py-1.5 text-sm font-bold uppercase tracking-wider ${getRiskColor(
+                      record.triageLog.riskLevel || record.triageLog.risk_level
+                    )}`}
+                  >
+                    {(record.triageLog.riskLevel || record.triageLog.risk_level)} RISK
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteHistoryItem(record)}
+                    disabled={deletingHistoryId === getRecordId(record)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label="Delete assessment history item"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deletingHistoryId === getRecordId(record) ? 'Deleting...' : 'Delete'}
+                  </button>
                 </div>
               </div>
 

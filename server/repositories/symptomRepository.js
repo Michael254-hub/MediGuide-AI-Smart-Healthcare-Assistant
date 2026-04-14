@@ -21,6 +21,19 @@ class SymptomRepository {
     return data;
   }
 
+  async deleteSubmissionByUser(submissionId, userId) {
+    const { data, error } = await supabase
+      .from('symptom_submissions')
+      .delete()
+      .eq('id', submissionId)
+      .eq('user_id', userId)
+      .select('id')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
   async createTriageLog(logData) {
     const { data, error } = await supabase
       .from('triage_logs')

@@ -14,6 +14,8 @@ const {
   DEFAULT_SUGGESTIONS,
 } = require('../services/aiConsultationService');
 const patientProfileService = require('../services/patientProfileService');
+const mediChatService = require('../services/mediChatService');
+const triageService = require('../services/triageService');
 const { getRequestContext } = require('../utils/requestContext');
 const DEFAULT_ATTACHMENT_PROMPT =
   'Please review the attached materials and provide general educational health information, key safety considerations, and when someone should seek professional care.';
@@ -69,6 +71,47 @@ const buildAttachmentPayload = (files = []) =>
     data: file.buffer.toString('base64'),
   }));
 
+const inferAttachmentKind = (mimeType = '') => {
+  if (mimeType.startsWith('image/')) {
+    return 'image';
+  }
+
+  if (mimeType.startsWith('video/')) {
+    return 'video';
+  }
+
+  if (mimeType.startsWith('audio/')) {
+    return 'audio';
+  }
+
+  return 'document';
+};
+
+const buildStoredUserAttachments = (files = []) =>
+  files.map((file) => ({
+    name: file.originalname,
+    size: file.size,
+    type: file.mimetype,
+    kind: inferAttachmentKind(file.mimetype),
+    description: 'Original upload reviewed in this MediChat exchange.',
+    url: '',
+    generated: false,
+  }));
+
+const buildStoredAssistantAttachments = (artifacts = []) =>
+  Array.isArray(artifacts)
+    ? artifacts.map((artifact) => ({
+        id: artifact.id,
+        name: artifact.name,
+        size: artifact.size,
+        type: artifact.type,
+        kind: artifact.kind,
+        description: artifact.description || '',
+        url: artifact.url || '',
+        generated: Boolean(artifact.generated),
+      }))
+    : [];
+
 const normalizeQuestion = (rawQuestion, attachments) => {
   const trimmedQuestion =
     typeof rawQuestion === 'string' ? rawQuestion.trim() : '';
@@ -82,6 +125,93 @@ const normalizeQuestion = (rawQuestion, attachments) => {
   }
 
   return '';
+};
+
+const truncateText = (value, maxLength = 255) => {
+  if (!value) {
+    return '';
+  }
+
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+};
+
+const buildAssessmentHistoryContext = async (userId) => {
+  const history = await triageService.getUserHistory(userId);
+
+  if (!Array.isArray(history) || history.length === 0) {
+    return '';
+  }
+
+  return `RECENT ASSESSMENT HISTORY:
+${history
+  .slice(0, 3)
+  .map((record) => {
+    const symptoms = record.submission?.symptoms || 'No symptoms recorded';
+    const riskLevel = record.triageLog?.riskLevel || record.triageLog?.risk_level || 'UNKNOWN';
+    return `- ${truncateText(symptoms, 120)} (Risk: ${riskLevel})`;
+  })
+  .join('\n')}
+- Use this only as prior context. Do not assume previous symptoms are still active unless the current request confirms them.`;
+};
+
+const buildMediChatContext = async (user, req) => {
+  const patientData = await getClinicalDataForUser(user, req);
+  const clinicalContext = buildClinicalContext(patientData);
+  const assessmentHistoryContext = await buildAssessmentHistoryContext(user.id);
+  const personalizedMemoryContext = await mediChatService.getMemoryContext(user);
+
+  return {
+    patientData,
+    clinicalContext: [clinicalContext, assessmentHistoryContext, personalizedMemoryContext]
+      .filter(Boolean)
+      .join('\n\n'),
+  };
+};
+
+const getConversationHistory = async (req, res, next) => {
+  try {
+    const conversations = await mediChatService.listUserConversations(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        conversations,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteConversationHistory = async (req, res, next) => {
+  try {
+    await mediChatService.deleteConversation(req.user, req.params.conversationId);
+
+    res.status(200).json({
+      success: true,
+      message: 'MediChat conversation deleted successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const importConversationHistory = async (req, res, next) => {
+  try {
+    const conversations = await mediChatService.importConversations(
+      req.user,
+      req.body?.conversations
+    );
+
+    res.status(201).json({
+      success: true,
+      data: {
+        conversations,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
@@ -108,7 +238,18 @@ const getPatientData = async (req, res, next) => {
 const getAIConsultation = async (req, res, next) => {
   try {
     const attachments = buildAttachmentPayload(req.files);
-    const conversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const fallbackConversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const conversationId =
+      typeof req.body.conversationId === 'string' && req.body.conversationId.trim()
+        ? req.body.conversationId.trim()
+        : '';
+    const conversationTitle =
+      typeof req.body.conversationTitle === 'string' && req.body.conversationTitle.trim()
+        ? truncateText(req.body.conversationTitle.trim())
+        : 'New conversation';
+    const conversationHistory = conversationId
+      ? await mediChatService.getConversationHistoryForAi(req.user.id, conversationId)
+      : fallbackConversationHistory;
     const question = normalizeQuestion(req.body.question, attachments);
 
     if (!question) {
@@ -118,8 +259,7 @@ const getAIConsultation = async (req, res, next) => {
       });
     }
 
-    const patientData = await getClinicalDataForUser(req.user, req);
-    const clinicalContext = buildClinicalContext(patientData);
+    const { clinicalContext } = await buildMediChatContext(req.user, req);
 
     // Get MediChat response
     const consultation = await consultWithAI(
@@ -130,17 +270,46 @@ const getAIConsultation = async (req, res, next) => {
     );
 
     if (!consultation.success) {
+      const failedConversation = await mediChatService.saveConsultationExchange({
+        user: req.user,
+        conversationId,
+        conversationTitle,
+        userMessage: question,
+        userAttachments: buildStoredUserAttachments(req.files || []),
+        assistantMessage:
+          consultation.error || 'MediChat could not generate a response for that request.',
+        assistantAttachments: [],
+        usage: consultation.usage,
+        isError: true,
+      });
+
       return res.status(500).json({
         success: false,
-        message: consultation.error || 'Failed to generate consultation'
+        message: consultation.error || 'Failed to generate consultation',
+        data: {
+          conversation: failedConversation,
+        },
       });
     }
+
+    const conversation = await mediChatService.saveConsultationExchange({
+      user: req.user,
+      conversationId,
+      conversationTitle,
+      userMessage: question,
+      userAttachments: buildStoredUserAttachments(req.files || []),
+      assistantMessage: consultation.response,
+      assistantAttachments: buildStoredAssistantAttachments(consultation.artifacts),
+      usage: consultation.usage,
+      isError: false,
+    });
 
     res.status(200).json({
       success: true,
       data: {
         consultation: consultation.response,
         artifacts: consultation.artifacts || [],
+        conversation,
         usage: consultation.usage,
         attachmentsProcessed: attachments.length,
         timestamp: new Date().toISOString()
@@ -158,7 +327,18 @@ const getAIConsultation = async (req, res, next) => {
 const getAIConsultationStream = async (req, res, next) => {
   try {
     const attachments = buildAttachmentPayload(req.files);
-    const conversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const fallbackConversationHistory = parseConversationHistory(req.body.conversationHistory);
+    const conversationId =
+      typeof req.body.conversationId === 'string' && req.body.conversationId.trim()
+        ? req.body.conversationId.trim()
+        : '';
+    const conversationTitle =
+      typeof req.body.conversationTitle === 'string' && req.body.conversationTitle.trim()
+        ? truncateText(req.body.conversationTitle.trim())
+        : 'New conversation';
+    const conversationHistory = conversationId
+      ? await mediChatService.getConversationHistoryForAi(req.user.id, conversationId)
+      : fallbackConversationHistory;
     const question = normalizeQuestion(req.body.question, attachments);
 
     if (!question) {
@@ -173,8 +353,7 @@ const getAIConsultationStream = async (req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const patientData = await getClinicalDataForUser(req.user, req);
-    const clinicalContext = buildClinicalContext(patientData);
+    const { clinicalContext } = await buildMediChatContext(req.user, req);
 
     // Import streaming service
     const { consultWithAIStream } = require('../services/aiConsultationService');
@@ -193,13 +372,47 @@ const getAIConsultationStream = async (req, res, next) => {
       res.write(`data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text } })}\n\n`);
     });
 
-    stream.on('end', () => {
+    stream.on('end', async () => {
+      try {
+        if (fullResponse.trim()) {
+          await mediChatService.saveConsultationExchange({
+            user: req.user,
+            conversationId,
+            conversationTitle,
+            userMessage: question,
+            userAttachments: buildStoredUserAttachments(req.files || []),
+            assistantMessage: fullResponse,
+            assistantAttachments: [],
+            usage: null,
+            isError: false,
+          });
+        }
+      } catch (persistError) {
+        console.error('Failed to persist streamed MediChat exchange:', persistError);
+      }
+
       res.write(`data: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
       res.end();
     });
 
-    stream.on('error', (error) => {
+    stream.on('error', async (error) => {
       console.error('Stream error:', error);
+      try {
+        await mediChatService.saveConsultationExchange({
+          user: req.user,
+          conversationId,
+          conversationTitle,
+          userMessage: question,
+          userAttachments: buildStoredUserAttachments(req.files || []),
+          assistantMessage:
+            error.message || 'MediChat could not process that streamed request.',
+          assistantAttachments: [],
+          usage: null,
+          isError: true,
+        });
+      } catch (persistError) {
+        console.error('Failed to persist streamed MediChat error:', persistError);
+      }
       res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
       res.end();
     });
@@ -218,8 +431,7 @@ const getAIConsultationStream = async (req, res, next) => {
  */
 const getSuggestions = async (req, res, next) => {
   try {
-    const patientData = await getClinicalDataForUser(req.user, req);
-    const clinicalContext = buildClinicalContext(patientData);
+    const { clinicalContext } = await buildMediChatContext(req.user, req);
 
     // Generate MediChat suggestions
     const suggestionsResult = await generateSuggestions(clinicalContext);
@@ -303,6 +515,9 @@ module.exports = {
   getPatientData,
   getAIConsultation,
   getAIConsultationStream,
+  getConversationHistory,
+  importConversationHistory,
+  deleteConversationHistory,
   getSuggestions,
   getDifferentialDiagnosis,
   getMedications,

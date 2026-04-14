@@ -32,7 +32,7 @@ import {
 import { mediChatAPI } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 
-const MEDIGUIDE_STORAGE_PREFIX = "mediguide-ai-conversations:";
+const LEGACY_MEDIGUIDE_STORAGE_PREFIX = "mediguide-ai-conversations:";
 const MAX_ATTACHMENTS = 4;
 const SUPPORTED_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
@@ -62,6 +62,7 @@ const createEmptyConversation = () => {
     title: "New conversation",
     createdAt: timestamp,
     updatedAt: timestamp,
+    persisted: false,
     messages: [],
   };
 };
@@ -127,6 +128,32 @@ const normalizeAttachmentRecord = (attachment = {}) => ({
   generated: Boolean(attachment.generated),
 });
 
+const normalizeMessageRecord = (message = {}) => ({
+  id: message.id || createId("message"),
+  role: message.role || "assistant",
+  content: message.content || "",
+  timestamp: message.timestamp || message.createdAt || new Date().toISOString(),
+  usage: message.usage || null,
+  isError: Boolean(message.isError),
+  attachments: Array.isArray(message.attachments)
+    ? message.attachments.map((attachment) => normalizeAttachmentRecord(attachment))
+    : [],
+});
+
+const normalizeConversationRecord = (conversation = {}) => ({
+  id: conversation.id || createId("conversation"),
+  title:
+    typeof conversation.title === "string" && conversation.title.trim()
+      ? conversation.title.trim()
+      : "Untitled conversation",
+  createdAt: conversation.createdAt || new Date().toISOString(),
+  updatedAt: conversation.updatedAt || conversation.createdAt || new Date().toISOString(),
+  persisted: Boolean(conversation.persisted),
+  messages: Array.isArray(conversation.messages)
+    ? conversation.messages.map((message) => normalizeMessageRecord(message))
+    : [],
+});
+
 const toMessageAttachment = (attachment) =>
   normalizeAttachmentRecord({
     id: attachment.id,
@@ -136,46 +163,14 @@ const toMessageAttachment = (attachment) =>
     kind: attachment.kind,
   });
 
-const sanitizeStoredConversations = (rawValue) => {
+const ensureConversationCollection = (rawValue) => {
   if (!Array.isArray(rawValue) || rawValue.length === 0) {
     return [createEmptyConversation()];
   }
 
   const normalized = rawValue
-    .filter((conversation) => conversation && typeof conversation.id === "string")
-    .map((conversation) => ({
-      id: conversation.id,
-      title:
-        typeof conversation.title === "string" && conversation.title.trim()
-          ? conversation.title.trim()
-          : "Untitled conversation",
-      createdAt: conversation.createdAt || new Date().toISOString(),
-      updatedAt:
-        conversation.updatedAt || conversation.createdAt || new Date().toISOString(),
-      messages: Array.isArray(conversation.messages)
-        ? conversation.messages
-            .filter(
-              (message) =>
-                message &&
-                typeof message.id === "string" &&
-                typeof message.role === "string" &&
-                typeof message.content === "string"
-            )
-            .map((message) => ({
-              id: message.id,
-              role: message.role,
-              content: message.content,
-              timestamp: message.timestamp || new Date().toISOString(),
-              usage: message.usage || null,
-              isError: Boolean(message.isError),
-              attachments: Array.isArray(message.attachments)
-                ? message.attachments.map((attachment) =>
-                    normalizeAttachmentRecord(attachment)
-                  )
-                : [],
-            }))
-        : [],
-    }));
+    .filter((conversation) => conversation && typeof conversation === "object")
+    .map((conversation) => normalizeConversationRecord(conversation));
 
   return normalized.length > 0 ? sortConversations(normalized) : [createEmptyConversation()];
 };
@@ -257,12 +252,23 @@ const serializeMessageForApi = (message) => {
   };
 };
 
-const getStorageKey = (user) =>
-  `${MEDIGUIDE_STORAGE_PREFIX}${user?.id || user?.email || "guest"}`;
+const getLegacyStorageKey = (user) =>
+  `${LEGACY_MEDIGUIDE_STORAGE_PREFIX}${user?.id || user?.email || "guest"}`;
+
+const getMediChatLoadErrorMessage = (error) => {
+  if (error?.code === "ERR_NETWORK") {
+    return "MediChat could not reach the API server at http://localhost:5000. Start the backend server and try again.";
+  }
+
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  return "Failed to load MediChat. Please try again.";
+};
 
 const ClinicalDashboard = () => {
   const { user } = useAuthStore();
-  const storageKey = getStorageKey(user);
   const messagesEndRef = useRef(null);
   const attachmentInputRef = useRef(null);
   const draftAttachmentsRef = useRef([]);
@@ -273,7 +279,7 @@ const ClinicalDashboard = () => {
   const [error, setError] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
-  const [conversationsReady, setConversationsReady] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [draftAttachments, setDraftAttachments] = useState([]);
   const [isConsulting, setIsConsulting] = useState(false);
@@ -289,68 +295,74 @@ const ClinicalDashboard = () => {
   }, [draftAttachments]);
 
   useEffect(() => {
-    const loadPatientData = async () => {
+    const loadMediChat = async () => {
       try {
         setIsLoading(true);
-        const [patientRes, suggestionsRes] = await Promise.allSettled([
+        const [patientRes, historyRes, suggestionsRes] = await Promise.allSettled([
           mediChatAPI.getPatientData(),
+          mediChatAPI.getConversationHistory(),
           mediChatAPI.getSuggestions(),
         ]);
 
-        if (patientRes.status !== "fulfilled") {
-          throw patientRes.reason;
+        if (patientRes.status !== "fulfilled" || historyRes.status !== "fulfilled") {
+          throw patientRes.status !== "fulfilled" ? patientRes.reason : historyRes.reason;
+        }
+
+        const storedConversations = historyRes.value.data.data.conversations || [];
+        let initialConversations = ensureConversationCollection(storedConversations);
+        let nextChatNotice = "";
+
+        if (storedConversations.length === 0 && typeof window !== "undefined") {
+          const legacyStorageKey = getLegacyStorageKey(user);
+          const rawLegacyValue = window.localStorage.getItem(legacyStorageKey);
+
+          if (rawLegacyValue) {
+            try {
+              const parsedLegacyConversations = JSON.parse(rawLegacyValue);
+              const legacyConversations = ensureConversationCollection(
+                parsedLegacyConversations
+              ).filter((conversation) => conversation.messages.length > 0);
+
+              if (legacyConversations.length > 0) {
+                const importResponse = await mediChatAPI.importConversationHistory(
+                  legacyConversations
+                );
+
+                initialConversations = ensureConversationCollection(
+                  importResponse.data.data.conversations || []
+                );
+                window.localStorage.removeItem(legacyStorageKey);
+                nextChatNotice =
+                  "Your previous MediChat conversations were migrated into your account.";
+              }
+            } catch (migrationError) {
+              console.error("Failed to migrate legacy MediChat history:", migrationError);
+            }
+          }
         }
 
         setPatientData(patientRes.value.data.data);
+        setConversations(initialConversations);
+        setActiveConversationId(initialConversations[0]?.id || null);
         setSuggestions(
           suggestionsRes.status === "fulfilled"
             ? suggestionsRes.value.data.data.suggestions || []
             : []
         );
+        setInputValue("");
+        setDraftAttachments([]);
+        setChatNotice(nextChatNotice);
         setError(null);
       } catch (loadError) {
-        console.error("Failed to load patient data:", loadError);
-        setError("Failed to load MediChat. Please try again.");
+        console.error("Failed to load MediChat:", loadError);
+        setError(getMediChatLoadErrorMessage(loadError));
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadPatientData();
-  }, []);
-
-  useEffect(() => {
-    setConversationsReady(false);
-    releaseAttachments(draftAttachmentsRef.current);
-    draftAttachmentsRef.current = [];
-
-    try {
-      const rawValue = localStorage.getItem(storageKey);
-      const parsedValue = rawValue ? JSON.parse(rawValue) : [];
-      const initialConversations = sanitizeStoredConversations(parsedValue);
-
-      setConversations(initialConversations);
-      setActiveConversationId(initialConversations[0]?.id || null);
-      setInputValue("");
-      setDraftAttachments([]);
-      setChatNotice("");
-    } catch (loadError) {
-      console.error("Failed to load MediChat conversations:", loadError);
-      const fallbackConversation = createEmptyConversation();
-      setConversations([fallbackConversation]);
-      setActiveConversationId(fallbackConversation.id);
-    } finally {
-      setConversationsReady(true);
-    }
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!conversationsReady) {
-      return;
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(conversations));
-  }, [conversations, conversationsReady, storageKey]);
+    loadMediChat();
+  }, [user?.email, user?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -395,6 +407,22 @@ const ClinicalDashboard = () => {
     );
   };
 
+  const replaceConversation = (temporaryConversationId, nextConversation) => {
+    const normalizedConversation = normalizeConversationRecord(nextConversation);
+
+    setConversations((previousConversations) =>
+      sortConversations([
+        normalizedConversation,
+        ...previousConversations.filter(
+          (conversation) =>
+            conversation.id !== temporaryConversationId &&
+            conversation.id !== normalizedConversation.id
+        ),
+      ])
+    );
+    setActiveConversationId(normalizedConversation.id);
+  };
+
   const switchConversation = (conversationId) => {
     if (conversationId === activeConversationId) {
       return;
@@ -407,6 +435,17 @@ const ClinicalDashboard = () => {
   };
 
   const handleNewConversation = () => {
+    if (
+      activeConversation &&
+      activeConversation.messages.length === 0 &&
+      !activeConversation.persisted
+    ) {
+      clearDraftAttachments();
+      setInputValue("");
+      setChatNotice("");
+      return;
+    }
+
     const conversation = createEmptyConversation();
 
     clearDraftAttachments();
@@ -418,26 +457,61 @@ const ClinicalDashboard = () => {
     setActiveConversationId(conversation.id);
   };
 
-  const handleDeleteConversation = (conversationId) => {
-    const remainingConversations = conversations.filter(
-      (conversation) => conversation.id !== conversationId
+  const handleDeleteConversation = async (conversationId) => {
+    const targetConversation = conversations.find(
+      (conversation) => conversation.id === conversationId
     );
 
-    if (remainingConversations.length === 0) {
-      const fallbackConversation = createEmptyConversation();
-      setConversations([fallbackConversation]);
-      setActiveConversationId(fallbackConversation.id);
-      clearDraftAttachments();
-      setInputValue("");
+    if (!targetConversation) {
       return;
     }
 
-    setConversations(sortConversations(remainingConversations));
+    const confirmed = window.confirm(
+      `Delete "${targetConversation.title}" from your MediChat history? This action cannot be undone.`
+    );
 
-    if (conversationId === activeConversationId) {
-      setActiveConversationId(remainingConversations[0].id);
-      clearDraftAttachments();
-      setInputValue("");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingConversationId(conversationId);
+
+      if (targetConversation.persisted) {
+        await mediChatAPI.deleteConversation(conversationId);
+      }
+
+      const remainingConversations = conversations.filter(
+        (conversation) => conversation.id !== conversationId
+      );
+
+      if (remainingConversations.length === 0) {
+        const fallbackConversation = createEmptyConversation();
+        setConversations([fallbackConversation]);
+        setActiveConversationId(fallbackConversation.id);
+        clearDraftAttachments();
+        setInputValue("");
+        setChatNotice("Conversation deleted.");
+        return;
+      }
+
+      setConversations(sortConversations(remainingConversations));
+
+      if (conversationId === activeConversationId) {
+        setActiveConversationId(remainingConversations[0].id);
+        clearDraftAttachments();
+        setInputValue("");
+      }
+
+      setChatNotice("Conversation deleted.");
+    } catch (deleteError) {
+      console.error("Failed to delete MediChat conversation:", deleteError);
+      window.alert(
+        deleteError.response?.data?.message ||
+          "We could not delete that MediChat conversation right now. Please try again."
+      );
+    } finally {
+      setDeletingConversationId(null);
     }
   };
 
@@ -507,14 +581,16 @@ const ClinicalDashboard = () => {
       attachments: attachmentMetadata,
     };
     const conversationHistory = activeConversation.messages.map(serializeMessageForApi);
-    const conversationId = activeConversation.id;
+    const localConversationId = activeConversation.id;
+    const conversationId = activeConversation.persisted ? activeConversation.id : undefined;
+    const conversationTitle =
+      activeConversation.messages.length === 0
+        ? deriveConversationTitle(trimmedMessage, attachmentMetadata)
+        : activeConversation.title;
 
-    updateConversation(conversationId, (conversation) => ({
+    updateConversation(localConversationId, (conversation) => ({
       ...conversation,
-      title:
-        conversation.messages.length === 0
-          ? deriveConversationTitle(trimmedMessage, attachmentMetadata)
-          : conversation.title,
+      title: conversationTitle,
       updatedAt: now,
       messages: [...conversation.messages, userMessage],
     }));
@@ -527,30 +603,25 @@ const ClinicalDashboard = () => {
     try {
       const response = await mediChatAPI.sendMessage({
         question: trimmedMessage,
+        conversationId,
+        conversationTitle,
         conversationHistory,
         attachments: pendingAttachments.map((attachment) => attachment.file),
       });
-
-      const assistantMessage = {
-        id: createId("message"),
-        role: "assistant",
-        content: response.data.data.consultation,
-        timestamp: response.data.data.timestamp || new Date().toISOString(),
-        usage: response.data.data.usage,
-        attachments: Array.isArray(response.data.data.artifacts)
-          ? response.data.data.artifacts.map((artifact) =>
-              normalizeAttachmentRecord(artifact)
-            )
-          : [],
-      };
-
-      updateConversation(conversationId, (conversation) => ({
-        ...conversation,
-        updatedAt: assistantMessage.timestamp,
-        messages: [...conversation.messages, assistantMessage],
-      }));
+      replaceConversation(localConversationId, response.data.data.conversation);
     } catch (requestError) {
       console.error("Failed to get MediGuide response:", requestError);
+
+      const persistedErrorConversation = requestError.response?.data?.data?.conversation;
+
+      if (persistedErrorConversation) {
+        replaceConversation(localConversationId, persistedErrorConversation);
+        setChatNotice(
+          requestError.response?.data?.message ||
+            "MediChat saved the exchange, but the response completed with an error."
+        );
+        return;
+      }
 
       const errorMessage = {
         id: createId("message"),
@@ -563,7 +634,7 @@ const ClinicalDashboard = () => {
         attachments: [],
       };
 
-      updateConversation(conversationId, (conversation) => ({
+      updateConversation(localConversationId, (conversation) => ({
         ...conversation,
         updatedAt: errorMessage.timestamp,
         messages: [...conversation.messages, errorMessage],
@@ -615,11 +686,11 @@ const ClinicalDashboard = () => {
           attachmentInputRef={attachmentInputRef}
           chatNotice={chatNotice}
           conversations={conversations}
+          deletingConversationId={deletingConversationId}
           draftAttachments={draftAttachments}
           inputValue={inputValue}
           isConsulting={isConsulting}
           messagesEndRef={messagesEndRef}
-          patientData={patientData}
           suggestions={suggestions}
           onDeleteConversation={handleDeleteConversation}
           onInputChange={setInputValue}
@@ -640,11 +711,11 @@ const MediGuideChatTab = ({
   attachmentInputRef,
   chatNotice,
   conversations,
+  deletingConversationId,
   draftAttachments,
   inputValue,
   isConsulting,
   messagesEndRef,
-  patientData,
   suggestions,
   onDeleteConversation,
   onInputChange,
@@ -655,7 +726,6 @@ const MediGuideChatTab = ({
   onSuggestedQuestion,
   onUploadAttachments,
 }) => {
-  const patient = patientData?.patient;
   const canSend = inputValue.trim().length > 0 || draftAttachments.length > 0;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -785,7 +855,8 @@ const MediGuideChatTab = ({
                             event.stopPropagation();
                             onDeleteConversation(conversation.id);
                           }}
-                          className="rounded-full p-1 text-slate-400 transition hover:bg-white hover:text-red-500"
+                          disabled={deletingConversationId === conversation.id}
+                          className="rounded-full p-1 text-slate-400 transition hover:bg-white hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                           aria-label={`Delete ${conversation.title}`}
                         >
                           <Trash2 className="h-4 w-4" />

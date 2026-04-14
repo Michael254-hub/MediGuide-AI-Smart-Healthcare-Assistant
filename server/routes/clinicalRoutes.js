@@ -9,6 +9,9 @@ const {
   getPatientData,
   getAIConsultation,
   getAIConsultationStream,
+  getConversationHistory,
+  importConversationHistory,
+  deleteConversationHistory,
   getSuggestions,
   getDifferentialDiagnosis,
   getMedications,
@@ -39,6 +42,9 @@ router.get('/medications', getMedications);
 router.get('/labs', getLabResults);
 
 // MediChat conversation endpoints
+router.get('/history', getConversationHistory);
+router.post('/history/import', importConversationHistory);
+router.delete('/history/:conversationId', deleteConversationHistory);
 router.get('/suggestions', getSuggestions);
 router.post('/consult', handleMediChatAttachments, getAIConsultation);
 router.post('/consult-stream', handleMediChatAttachments, getAIConsultationStream);

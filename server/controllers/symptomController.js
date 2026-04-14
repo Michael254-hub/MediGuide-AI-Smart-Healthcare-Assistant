@@ -36,8 +36,21 @@ const getHistory = async (req, res, next) => {
   }
 };
 
+const deleteHistoryItem = async (req, res, next) => {
+  try {
+    await triageService.deleteUserHistoryItem(req.user.id, req.params.submissionId);
+    res.status(200).json({
+      success: true,
+      message: 'Assessment history item deleted successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getFollowUpQuestions,
   submitSymptoms,
-  getHistory
+  getHistory,
+  deleteHistoryItem,
 };

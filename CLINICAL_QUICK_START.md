@@ -2,7 +2,7 @@
 
 ## ✨ What You've Just Built
 
-A **production-ready AI-powered clinical decision support system** with:
+A production-ready MediGuide clinical support experience with:
 
 - ✅ **Multi-tab Clinical Dashboard** with real-time data visualization
 - ✅ **AI-Powered Consultation** powered by Google Gemini Flash
@@ -14,6 +14,9 @@ A **production-ready AI-powered clinical decision support system** with:
 - ✅ **Intelligent Suggestion Engine** for clinical questions
 - ✅ **Full Authentication** with JWT tokens
 - ✅ **Supabase Database** for persistent data storage
+- ✅ **Persistent MediChat History** tied to the authenticated user
+- ✅ **Personalized MediChat Memory** per patient, admin, or medical professional
+- ✅ **Assessment and MediChat History Deletion** for user-controlled cleanup
 
 ## 🚀 Getting Started (5 minutes)
 
@@ -57,7 +60,7 @@ npm run dev
    - Use **Voice Input** to describe symptoms
    - Upload **Images** of visible symptoms
    - Combine text, voice, and images for rich symptom input
-5. Click the **🧠 MediGuide AI** link in the navbar to explore the clinical dashboard
+5. Click the **MediChat** link in the navbar to explore the health education dashboard
 
 ## 📊 System Overview
 
@@ -67,7 +70,7 @@ npm run dev
 ┌──────────────────────────────────────────────────────────────┐
 │                     Frontend (React)                          │
 │  • SubmitSymptoms.jsx  - Voice & image-enabled form          │
-│  • ClinicalDashboard.jsx  - Multi-tab UI with 5 sections    │
+│  • ClinicalDashboard.jsx  - MediChat interface + history     │
 └──────────────────────┬───────────────────────────────────────┘
                        │ Axios API Client
                        │ (auto-auth interceptors)
@@ -76,14 +79,14 @@ npm run dev
 │                Backend (Express + Node.js)                    │
 │                                                                │
 │  ┌──────────────────────────────────────────────────────────┐ │
-│  │  Route: /api/v1/clinical/*  & /api/v1/symptoms/*        │ │
+│  │  Route: /api/v1/medichat/*  & /api/v1/symptoms/*       │ │
 │  │  Controllers → Services → Google Gemini API           │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │                                                                │
 │  Services:                                                     │
 │  • clinicalDataService.js  - Patient data + context          │
 │  • aiConsultationService.js - Google Gemini integration     │
-│  • clinicalController.js   - Route handlers                 │
+│  • clinicalController.js   - MediChat route handlers        │
 │  • symptomController.js    - Symptom processing             │
 └──────────────────────────────────────────────────────────────┘
                        │
@@ -100,15 +103,15 @@ mediguide-ai-healthcare-assistant/
 ├── client/src/
 │   ├── pages/
 │   │   ├── SubmitSymptoms.jsx             ✨ Enhanced with voice & images
-│   │   └── ClinicalDashboard.jsx          ✨ Main clinical interface
+│   │   └── ClinicalDashboard.jsx          ✨ Main MediChat interface
 │   ├── services/
 │   │   └── api.js                         (JWT auto-injection)
 │   └── components/
-│       └── Navbar.jsx                     (Added "MediGuide AI" link)
+│       └── Navbar.jsx                     (Added "MediChat" link)
 │
 ├── server/
 │   ├── routes/
-│   │   ├── clinicalRoutes.js              ✨ Clinical endpoints
+│   │   ├── clinicalRoutes.js              ✨ MediChat endpoints
 │   │   └── symptomRoutes.js               ✨ Symptom endpoints with image handling
 │   ├── controllers/
 │   │   ├── clinicalController.js          ✨ Route handlers
@@ -116,6 +119,8 @@ mediguide-ai-healthcare-assistant/
 │   ├── services/
 │   │   ├── clinicalDataService.js         ✨ Patient data + context
 │   │   └── aiConsultationService.js       ✨ Google Gemini integration
+│   │   ├── mediChatService.js             ✨ Conversation persistence
+│   │   └── mediChatMemoryService.js       ✨ Personalized memory
 │   ├── app.js                             (Updated with routes)
 │   └── .env                               (Update GEMINI_API_KEY)
 │
@@ -134,12 +139,13 @@ mediguide-ai-healthcare-assistant/
 - **Risk Assessment**: Overall risk score (0-100) with factors
 - **Action Items**: Prioritized clinical tasks
 
-### 2. MediGuide Chat Tab
+### 2. MediChat Tab
 
 - **Sidebar**: AI-suggested questions
-- **Chat Interface**: Real-time messages with MediGuide AI
+- **Chat Interface**: Real-time messages with MediChat
 - **Context**: Full patient data automatically included
-- **Token Usage**: Shows API consumption per message
+- **Persistent History**: Conversations load again after login
+- **Delete Controls**: Users can remove selected conversations
 
 ### 3. Differential Diagnosis Tab
 
@@ -210,20 +216,28 @@ The system uses **JWT tokens** stored in `localStorage`:
 
 Protected Routes:
 
-- `/clinical` - Requires authentication
-- All clinical API endpoints require valid JWT
+- `/medichat` - Requires authentication
+- `/clinical` - Backward-compatible alias
+- All MediChat and symptom API endpoints require valid JWT
 
 ## 📈 API Endpoints Reference
 
 ```
-GET  /api/v1/clinical/patient-data              Get patient info + vitals
-GET  /api/v1/clinical/differential-diagnosis    Get ranked diagnoses
-GET  /api/v1/clinical/medications               Get current meds + interactions
-GET  /api/v1/clinical/labs                      Get lab results
-GET  /api/v1/clinical/suggestions               Get AI-suggested questions
-POST /api/v1/clinical/consult                   Send consultation question
-POST /api/v1/clinical/consult-stream            Stream response (for real-time UI)
+GET    /api/v1/medichat/patient-data              Get patient info + vitals
+GET    /api/v1/medichat/differential-diagnosis    Get ranked diagnoses
+GET    /api/v1/medichat/medications               Get current meds + interactions
+GET    /api/v1/medichat/labs                      Get lab results
+GET    /api/v1/medichat/suggestions               Get AI-suggested questions
+GET    /api/v1/medichat/history                   Get stored MediChat conversations
+POST   /api/v1/medichat/history/import            Import legacy local conversation history
+DELETE /api/v1/medichat/history/:conversationId   Delete a stored MediChat conversation
+POST   /api/v1/medichat/consult                   Send consultation question
+POST   /api/v1/medichat/consult-stream            Stream response
+GET    /api/v1/symptoms/history                   Get stored assessment history
+DELETE /api/v1/symptoms/history/:submissionId     Delete one assessment history item
 ```
+
+`/api/v1/clinical/*` still works as a compatibility alias.
 
 ## 🧪 Testing the System
 
@@ -268,6 +282,9 @@ From `server/config/schema.sql`:
 users              - User accounts + auth
 symptom_submissions - Symptom data
 triage_logs        - Clinical assessment results
+medichat_conversations - Stored MediChat threads
+medichat_messages      - Stored MediChat messages
+ai_user_memories       - Personalized MediChat memory summaries
 tasks              - Task management
 ```
 
@@ -318,7 +335,7 @@ npm run dev
 ```bash
 # In client directory:
 npm run dev
-# Then try: http://localhost:5173/clinical
+# Then try: http://localhost:5173/medichat
 ```
 
 ### ❌ "401 Unauthorized on API calls"
@@ -371,7 +388,7 @@ For understanding the system:
 1. ✅ Obtain Gemini API key
 2. ✅ Update `.env` file
 3. ✅ Start both services
-4. ✅ Test clinical dashboard
+4. ✅ Test MediChat dashboard
 
 ### Short Term (1-2 weeks)
 
@@ -385,7 +402,7 @@ For understanding the system:
 - [ ] Connect to actual EHR (FHIR API)
 - [ ] Integrate drug interaction database
 - [ ] Add clinical guideline search
-- [ ] Store conversation history
+- [x] Store conversation history
 
 ### Long Term (2-3 months)
 
@@ -411,7 +428,7 @@ For understanding the system:
 ```bash
 # Get patient data (replace TOKEN)
 curl -H "Authorization: Bearer TOKEN" \
-  http://localhost:5000/api/v1/clinical/patient-data
+  http://localhost:5000/api/v1/medichat/patient-data
 ```
 
 ### Verify API Key
@@ -421,14 +438,38 @@ curl -H "Authorization: Bearer TOKEN" \
 rg "GEMINI_API_KEY" server/.env
 ```
 
+### Verification Commands
+
+```bash
+# Frontend build
+cd client
+npm run build
+
+# Backend tests
+cd ../server
+npm test
+
+# API health
+curl http://localhost:5000/api/v1/health
+```
+
+Current verification baseline:
+- Frontend build passes
+- API health responds with `200 OK`
+- Most backend tests pass
+- Full backend suite is currently blocked by legacy syntax issues in `tests/phoneController.test.js` and `tests/phoneValidator.test.js`
+
 ## 🎉 Success Checklist
 
 - [ ] Server starts without errors
 - [ ] Frontend loads at `http://localhost:5173`
 - [ ] Can log in/register
-- [ ] Can navigate to `/clinical` page
+- [ ] Can navigate to `/medichat` page
 - [ ] Dashboard tab loads patient data
-- [ ] Can send message in MediGuide Chat
+- [ ] Can send message in MediChat
+- [ ] MediChat history loads after refresh/login
+- [ ] MediChat conversations can be deleted
+- [ ] Assessment history can be deleted
 - [ ] AI responds with clinical guidance
 - [ ] Other tabs (Dx, Meds, Labs) work
 - [ ] Suggested questions appear on sidebar
@@ -448,11 +489,11 @@ rg "GEMINI_API_KEY" server/.env
 
 ### Modified Files
 
-- 📝 `server/app.js` - Added clinical routes
+- 📝 `server/app.js` - Added MediChat routes
 - 📝 `server/.env` - Added GEMINI_API_KEY
 - 📝 `server/package.json` - Added @google/generative-ai
-- 📝 `client/src/App.jsx` - Added clinical route + import
-- 📝 `client/src/components/Navbar.jsx` - Added MediGuide AI link
+- 📝 `client/src/App.jsx` - Added MediChat route + alias
+- 📝 `client/src/components/Navbar.jsx` - Added MediChat link
 
 ---
 

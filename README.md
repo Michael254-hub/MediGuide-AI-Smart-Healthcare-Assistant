@@ -10,8 +10,10 @@ MediGuide is a web-based healthcare assistance platform that functions as a Deci
 
 ## Features
 - Secure Authentication (Patient & Admin Roles)
-- Symptom Submission with duration and severity tracking
+- Symptom Submission with duration, severity, and follow-up question tracking
 - Automated Triage Engine classifying risk levels (LOW, MEDIUM, HIGH, EMERGENCY)
+- Persistent assessment history with user-controlled deletion
+- MediChat with persistent conversation history, per-user memory, and optional history deletion
 - Admin Dashboard for monitoring submissions and risk distribution
 
 ## Getting Started
@@ -43,11 +45,46 @@ MediGuide is a web-based healthcare assistance platform that functions as a Deci
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5000`
 
-### API Documentation (Swagger)
-The API documentation is available via standard OpenAPI specification comments in the routes files. Key endpoints include:
+### Runtime Verification
+
+Use these checks to verify the local system cleanly:
+
+```bash
+# API health
+curl http://localhost:5000/api/v1/health
+
+# Frontend build
+cd client
+npm run build
+
+# Backend tests
+cd ../server
+npm test
+```
+
+Current verification baseline:
+- Frontend production build passes
+- API health endpoint responds with `200 OK`
+- Most backend tests pass
+- The full backend suite is currently blocked by legacy syntax issues in `server/tests/phoneController.test.js` and `server/tests/phoneValidator.test.js`
+
+### Persistence Notes
+
+- Run `server/config/migrations/006_medichat_persistence.sql` before relying on persistent MediChat history and personalized memory.
+- MediChat uses `/api/v1/medichat/*` as the primary route family.
+- `/api/v1/clinical/*` remains available as a backward-compatible alias.
+- Legacy browser-only MediChat history is imported into the user account the first time server-backed history is empty and the backend is available.
+
+### API Reference
+The API surface is documented in the routes and controllers. Key endpoints include:
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/symptoms`
+- `GET /api/v1/symptoms/history`
+- `DELETE /api/v1/symptoms/history/:submissionId`
+- `GET /api/v1/medichat/history`
+- `POST /api/v1/medichat/history/import`
+- `DELETE /api/v1/medichat/history/:conversationId`
 - `GET /api/v1/admin/stats`
 
 ## Deploying To Vercel

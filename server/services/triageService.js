@@ -1,6 +1,7 @@
 const symptomRepository = require('../repositories/symptomRepository');
 const { classifyRisk } = require('../utils/riskClassifier');
 const userRepository = require('../repositories/userRepository');
+const AppError = require('../errors/AppError');
 const patientProfileService = require('./patientProfileService');
 const { generateFollowUpQuestions } = require('./followUpQuestionService');
 const {
@@ -239,6 +240,18 @@ class TriageService {
     }
     
     return history;
+  }
+
+  async deleteUserHistoryItem(userId, submissionId) {
+    const deletedSubmission = await symptomRepository.deleteSubmissionByUser(submissionId, userId);
+
+    if (!deletedSubmission) {
+      throw new AppError('Assessment history item not found.', 404, {
+        code: 'ASSESSMENT_HISTORY_NOT_FOUND',
+      });
+    }
+
+    return deletedSubmission;
   }
 }
 
