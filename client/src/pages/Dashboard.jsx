@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Clock, PlusCircle, Stethoscope, Trash2 } from 'lucide-react';
+import { Activity, Clock, PlusCircle, Stethoscope, Trash2, X } from 'lucide-react';
 import { symptomAPI } from '../services/api';
 import RiskAlert from '../components/RiskAlert';
 import { useAuthStore } from '../store/authStore';
@@ -43,6 +43,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingHistoryId, setDeletingHistoryId] = useState(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(true);
   const user = useAuthStore((state) => state.user);
   const activeDetailRef = useRef(null);
 
@@ -93,15 +94,16 @@ const Dashboard = () => {
 
   const handleSelectHistoryItem = (recordId) => {
     setSelectedHistoryId(recordId);
+    setIsDetailPanelOpen(true);
   };
 
   useEffect(() => {
-    if (!selectedHistoryId) {
+    if (!selectedHistoryId || !isDetailPanelOpen) {
       return;
     }
 
     activeDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [selectedHistoryId]);
+  }, [selectedHistoryId, isDetailPanelOpen]);
 
   const handleDeleteHistoryItem = async (record) => {
     const recordId = getRecordId(record);
@@ -159,7 +161,7 @@ const Dashboard = () => {
     history.find((record) => getRecordId(record) === selectedHistoryId) || history[0] || null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl animate-fade-in px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl animate-fade-in px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-med-dark sm:text-3xl">
@@ -223,7 +225,7 @@ const Dashboard = () => {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)]">
             <div className="border-b border-slate-200 bg-slate-50/90 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
@@ -288,10 +290,10 @@ const Dashboard = () => {
               </p>
             </div>
 
-            {selectedRecord && (
+            {selectedRecord && isDetailPanelOpen ? (
               <article
                 ref={activeDetailRef}
-                className="scroll-mt-24 rounded-[28px] border border-sky-300 bg-white p-4 shadow-lg shadow-sky-100/70 ring-2 ring-sky-100 transition-all sm:p-6"
+                className="scroll-mt-24 rounded-[28px] border border-sky-300 bg-white p-4 shadow-lg shadow-sky-100/70 ring-2 ring-sky-100 transition-all sm:p-6 xl:flex xl:max-h-[calc(100vh-12rem)] xl:flex-col xl:overflow-hidden"
               >
                 <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-3">
@@ -348,15 +350,24 @@ const Dashboard = () => {
                       <Trash2 className="h-4 w-4" />
                       {deletingHistoryId === getRecordId(selectedRecord) ? 'Deleting...' : 'Delete'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsDetailPanelOpen(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                      aria-label="Close current assessment"
+                    >
+                      <X className="h-4 w-4" />
+                      Close
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-                  <div>
+                <div className="grid gap-6 md:grid-cols-2 md:gap-8 xl:min-h-0 xl:flex-1">
+                  <div className="xl:min-h-0 xl:overflow-hidden">
                     <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
                       Clinical questions and responses
                     </h4>
-                    <div className="space-y-4">
+                    <div className="space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-2">
                       {(selectedRecord.questionResponses || []).map((item, questionIndex) => (
                         <div
                           key={`${selectedRecord.id || questionIndex}-${questionIndex}`}
@@ -371,23 +382,53 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="xl:min-h-0 xl:overflow-hidden">
                     <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
                       Clinical assessment record
                     </h4>
-                    <RiskAlert
-                      level={
-                        selectedRecord.triageLog.riskLevel || selectedRecord.triageLog.risk_level
-                      }
-                      recommendation={selectedRecord.triageLog.recommendation}
-                      flaggedEmergency={
-                        selectedRecord.triageLog.flaggedEmergency ??
-                        selectedRecord.triageLog.flagged_emergency
-                      }
-                    />
+                    <div className="xl:max-h-full xl:overflow-y-auto xl:pr-2">
+                      <RiskAlert
+                        level={
+                          selectedRecord.triageLog.riskLevel || selectedRecord.triageLog.risk_level
+                        }
+                        recommendation={selectedRecord.triageLog.recommendation}
+                        flaggedEmergency={
+                          selectedRecord.triageLog.flaggedEmergency ??
+                          selectedRecord.triageLog.flagged_emergency
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               </article>
+            ) : (
+              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm sm:p-10">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                  <Activity className="h-7 w-7" />
+                </div>
+                <h3 className="mt-4 text-xl font-bold text-slate-900">Assessment closed to sidebar</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Choose another assessment from the sidebar or start a new one.
+                </p>
+                <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Link
+                    to="/submit"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-med-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-med-secondary"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    New Assessment
+                  </Link>
+                  {selectedRecord && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDetailPanelOpen(true)}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Reopen Current
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </section>
         </div>

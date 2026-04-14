@@ -680,7 +680,7 @@ const ClinicalDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-cyan-50">
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <MediGuideChatTab
           activeConversation={activeConversation}
           attachmentInputRef={attachmentInputRef}
@@ -728,6 +728,7 @@ const MediGuideChatTab = ({
 }) => {
   const canSend = inputValue.trim().length > 0 || draftAttachments.length > 0;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const conversationItemRefs = useRef({});
   const sortedConversations = sortConversations(conversations);
 
@@ -759,16 +760,19 @@ const MediGuideChatTab = ({
 
   const handleSelectConversation = (conversationId) => {
     onSelectConversation(conversationId);
+    setIsConversationPanelOpen(true);
     setIsSidebarOpen(false);
   };
 
   const handleCreateConversation = () => {
     onNewConversation();
+    setIsConversationPanelOpen(true);
     setIsSidebarOpen(false);
   };
 
   const handleSuggestedQuestionClick = (question) => {
     onSuggestedQuestion(question);
+    setIsConversationPanelOpen(true);
     setIsSidebarOpen(false);
   };
 
@@ -804,7 +808,7 @@ const MediGuideChatTab = ({
         </div>
       </div>
 
-      <div className="grid min-h-[calc(100vh-240px)] grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid min-h-[calc(100vh-240px)] grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside
           className={`${
             isSidebarOpen ? "flex" : "hidden"
@@ -930,215 +934,265 @@ const MediGuideChatTab = ({
         </aside>
 
         <section className="order-1 flex min-h-[calc(100vh-240px)] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm lg:order-2">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
-              <Brain className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
-                {activeConversation?.title || "MediChat"}
-              </h2>
-              <p className="text-xs text-slate-500 sm:text-sm">
-                Text, images, videos, audio, PDFs, and text documents in one health education thread
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto bg-slate-50/60 px-4 py-6 sm:px-6">
-          {activeConversation?.messages.length ? (
-            <div className="space-y-5">
-              {activeConversation.messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[92%] rounded-[28px] border px-4 py-4 shadow-sm sm:max-w-3xl sm:px-5 ${
-                      message.role === "user"
-                        ? "border-med-primary bg-med-primary text-white"
-                        : message.isError
-                          ? "border-red-200 bg-red-50 text-red-900"
-                          : "border-slate-200 bg-white text-slate-900"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
-                        {message.role === "user" ? "You" : "MediChat"}
-                      </p>
-                      <p className="text-xs opacity-70">
-                        {formatMessageTime(message.timestamp)}
-                      </p>
-                    </div>
-
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6">
-                      {message.content}
+        {isConversationPanelOpen ? (
+          <>
+            <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="mx-auto flex w-full max-w-4xl items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
+                    <Brain className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
+                      {activeConversation?.title || "MediChat"}
+                    </h2>
+                    <p className="text-xs text-slate-500 sm:text-sm">
+                      Text, images, videos, audio, PDFs, and text documents in one health education thread
                     </p>
-
-                    {message.attachments?.length > 0 && (
-                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                        {message.attachments.map((attachment) => (
-                          <MessageAttachmentCard
-                            key={attachment.id}
-                            attachment={attachment}
-                            isUserMessage={message.role === "user"}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {message.usage && (
-                      <p className="mt-3 text-xs opacity-70">
-                        Tokens: {message.usage.inputTokens} {"->"}{" "}
-                        {message.usage.outputTokens}
-                      </p>
-                    )}
                   </div>
                 </div>
-              ))}
-
-              {isConsulting && (
-                <div className="flex justify-start">
-                  <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex items-center gap-3 text-slate-600">
-                      <Loader className="h-4 w-4 animate-spin" />
-                      <span className="text-sm font-medium">
-                        MediChat is reviewing the latest context...
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <div className="max-w-xl text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-sky-100 text-sky-700">
-                  <Brain className="h-8 w-8" />
-                </div>
-                <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                  Start a MediChat health education conversation
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Ask about symptoms, conditions, medicines, medical terms, or
-                  health claims, or attach images, audio clips, short videos,
-                  PDFs, and text documents for review in the same thread.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        <div className="border-t border-slate-200 bg-white p-4 sm:p-6">
-          {chatNotice && (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {chatNotice}
-            </div>
-          )}
-
-          {draftAttachments.length > 0 && (
-            <div className="mb-4 grid gap-3 md:grid-cols-2">
-              {draftAttachments.map((attachment) => (
-                <DraftAttachmentCard
-                  key={attachment.id}
-                  attachment={attachment}
-                  onRemove={() => onRemoveDraftAttachment(attachment.id)}
-                />
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="rounded-[30px] border-2 border-sky-200 bg-white p-4 shadow-lg shadow-sky-100/50">
-              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                  <MessageCircle className="h-3.5 w-3.5 text-slate-500" />
-                  Text
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                  <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
-                  Images
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                  <Mic className="h-3.5 w-3.5 text-slate-500" />
-                  Audio
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                  <Video className="h-3.5 w-3.5 text-slate-500" />
-                  Videos
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                  <FileText className="h-3.5 w-3.5 text-slate-500" />
-                  Documents
-                </span>
-              </div>
-              <p className="mb-4 text-xs text-slate-500">
-                MediChat provides educational health information and can respond
-                with text, SVG visuals, and downloadable explainers or data files.
-              </p>
-              <p className="mb-4 text-xs text-amber-700">
-                MediChat does not diagnose, prescribe, or replace a healthcare professional.
-              </p>
-
-              <textarea
-                value={inputValue}
-                onChange={(event) => onInputChange(event.target.value)}
-                onKeyDown={handleComposerKeyDown}
-                placeholder="Ask MediChat about symptoms, conditions, medications, medical terms, or health information you want explained or verified..."
-                disabled={isConsulting}
-                rows={4}
-                className="min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:min-h-[140px]"
-              />
-
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    ref={attachmentInputRef}
-                    type="file"
-                    accept={ATTACHMENT_ACCEPT}
-                    multiple
-                    className="hidden"
-                    onChange={onUploadAttachments}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => attachmentInputRef.current?.click()}
-                    disabled={isConsulting || draftAttachments.length >= MAX_ATTACHMENTS}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Paperclip className="h-4 w-4" />
-                    Add attachments
-                  </button>
-                  <span className="text-xs text-slate-500">
-                    Supports images, audio, videos, PDFs, TXT, CSV, and JSON
-                  </span>
-                </div>
-
                 <button
-                  type="submit"
-                  disabled={isConsulting || !canSend}
-                  className="inline-flex h-12 items-center justify-center gap-2 self-stretch rounded-full bg-med-primary px-5 text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60 sm:w-12 sm:self-end sm:px-0"
-                  aria-label="Send message"
-                  title="Send message"
+                  type="button"
+                  onClick={() => setIsConversationPanelOpen(false)}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  aria-label="Close current chat"
                 >
-                  {isConsulting ? (
-                    <Loader className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                  <span className="text-sm font-semibold sm:hidden">
-                    {isConsulting ? "Sending" : "Send"}
-                  </span>
+                  <X className="h-4 w-4" />
+                  Close
                 </button>
               </div>
             </div>
-          </form>
-        </div>
+
+            <div className="flex-1 overflow-y-auto bg-slate-50/60 px-4 py-6 sm:px-6">
+              <div className="mx-auto w-full max-w-4xl">
+                {activeConversation?.messages.length ? (
+                  <div className="space-y-5">
+                    {activeConversation.messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[92%] rounded-[28px] border px-4 py-4 shadow-sm sm:max-w-3xl sm:px-5 ${
+                            message.role === "user"
+                              ? "border-med-primary bg-med-primary text-white"
+                              : message.isError
+                                ? "border-red-200 bg-red-50 text-red-900"
+                                : "border-slate-200 bg-white text-slate-900"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
+                              {message.role === "user" ? "You" : "MediChat"}
+                            </p>
+                            <p className="text-xs opacity-70">
+                              {formatMessageTime(message.timestamp)}
+                            </p>
+                          </div>
+
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6">
+                            {message.content}
+                          </p>
+
+                          {message.attachments?.length > 0 && (
+                            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                              {message.attachments.map((attachment) => (
+                                <MessageAttachmentCard
+                                  key={attachment.id}
+                                  attachment={attachment}
+                                  isUserMessage={message.role === "user"}
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {message.usage && (
+                            <p className="mt-3 text-xs opacity-70">
+                              Tokens: {message.usage.inputTokens} {"->"}{" "}
+                              {message.usage.outputTokens}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {isConsulting && (
+                      <div className="flex justify-start">
+                        <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                          <div className="flex items-center gap-3 text-slate-600">
+                            <Loader className="h-4 w-4 animate-spin" />
+                            <span className="text-sm font-medium">
+                              MediChat is reviewing the latest context...
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="max-w-xl text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-sky-100 text-sky-700">
+                        <Brain className="h-8 w-8" />
+                      </div>
+                      <h3 className="mt-5 text-2xl font-bold text-slate-900">
+                        Start a MediChat health education conversation
+                      </h3>
+                      <p className="mt-3 text-sm leading-6 text-slate-500">
+                        Ask about symptoms, conditions, medicines, medical terms, or
+                        health claims, or attach images, audio clips, short videos,
+                        PDFs, and text documents for review in the same thread.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 bg-white p-4 sm:p-6">
+              <div className="mx-auto w-full max-w-4xl">
+                {chatNotice && (
+                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {chatNotice}
+                  </div>
+                )}
+
+                {draftAttachments.length > 0 && (
+                  <div className="mb-4 grid gap-3 md:grid-cols-2">
+                    {draftAttachments.map((attachment) => (
+                      <DraftAttachmentCard
+                        key={attachment.id}
+                        attachment={attachment}
+                        onRemove={() => onRemoveDraftAttachment(attachment.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                  <div className="rounded-[30px] border-2 border-sky-200 bg-white p-4 shadow-lg shadow-sky-100/50">
+                    <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                        <MessageCircle className="h-3.5 w-3.5 text-slate-500" />
+                        Text
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                        Images
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                        <Mic className="h-3.5 w-3.5 text-slate-500" />
+                        Audio
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                        <Video className="h-3.5 w-3.5 text-slate-500" />
+                        Videos
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
+                        <FileText className="h-3.5 w-3.5 text-slate-500" />
+                        Documents
+                      </span>
+                    </div>
+                    <p className="mb-4 text-xs text-slate-500">
+                      MediChat provides educational health information and can respond
+                      with text, SVG visuals, and downloadable explainers or data files.
+                    </p>
+                    <p className="mb-4 text-xs text-amber-700">
+                      MediChat does not diagnose, prescribe, or replace a healthcare professional.
+                    </p>
+
+                    <textarea
+                      value={inputValue}
+                      onChange={(event) => onInputChange(event.target.value)}
+                      onKeyDown={handleComposerKeyDown}
+                      placeholder="Ask MediChat about symptoms, conditions, medications, medical terms, or health information you want explained or verified..."
+                      disabled={isConsulting}
+                      rows={4}
+                      className="min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:min-h-[140px]"
+                    />
+
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <input
+                          ref={attachmentInputRef}
+                          type="file"
+                          accept={ATTACHMENT_ACCEPT}
+                          multiple
+                          className="hidden"
+                          onChange={onUploadAttachments}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => attachmentInputRef.current?.click()}
+                          disabled={isConsulting || draftAttachments.length >= MAX_ATTACHMENTS}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                          Add attachments
+                        </button>
+                        <span className="text-xs text-slate-500">
+                          Supports images, audio, videos, PDFs, TXT, CSV, and JSON
+                        </span>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isConsulting || !canSend}
+                        className="inline-flex h-12 items-center justify-center gap-2 self-stretch rounded-full bg-med-primary px-5 text-white transition hover:bg-med-secondary disabled:cursor-not-allowed disabled:opacity-60 sm:w-12 sm:self-end sm:px-0"
+                        aria-label="Send message"
+                        title="Send message"
+                      >
+                        {isConsulting ? (
+                          <Loader className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Send className="h-5 w-5" />
+                        )}
+                        <span className="text-sm font-semibold sm:hidden">
+                          {isConsulting ? "Sending" : "Send"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+            <div className="w-full max-w-2xl rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                <MessageCircle className="h-8 w-8" />
+              </div>
+              <h3 className="mt-5 text-2xl font-bold text-slate-900">Chat closed to sidebar</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                Pick another conversation from the sidebar or start a new chat when you are ready.
+              </p>
+              <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleCreateConversation}
+                  className="inline-flex items-center gap-2 rounded-full bg-med-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-med-secondary"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Chat
+                </button>
+                {activeConversation && (
+                  <button
+                    type="button"
+                    onClick={() => setIsConversationPanelOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Reopen Current
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         </section>
       </div>
     </div>
