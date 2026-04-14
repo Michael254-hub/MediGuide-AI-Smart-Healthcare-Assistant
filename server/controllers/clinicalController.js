@@ -1,6 +1,6 @@
 /**
- * MediGuide AI Controller
- * Handles all endpoints for the AI-powered clinical support system
+ * MediChat Controller
+ * Handles all endpoints for the MediChat health education experience
  */
 
 const {
@@ -16,7 +16,7 @@ const {
 const patientProfileService = require('../services/patientProfileService');
 const { getRequestContext } = require('../utils/requestContext');
 const DEFAULT_ATTACHMENT_PROMPT =
-  'Please review the attached materials and provide the most clinically relevant findings, risks, and next steps.';
+  'Please review the attached materials and provide general educational health information, key safety considerations, and when someone should seek professional care.';
 
 const getClinicalDataForUser = async (user, req, auditAction = 'READ') => {
   const baseClinicalData = generateMockPatientData(user.id);
@@ -85,8 +85,8 @@ const normalizeQuestion = (rawQuestion, attachments) => {
 };
 
 /**
- * GET /api/v1/clinical/patient-data
- * Retrieve patient's clinical data for decision support
+ * GET /api/v1/medichat/patient-data
+ * Retrieve patient context used by MediChat
  */
 const getPatientData = async (req, res, next) => {
   try {
@@ -102,8 +102,8 @@ const getPatientData = async (req, res, next) => {
 };
 
 /**
- * POST /api/v1/clinical/consult
- * Get AI consultation based on patient data and clinical question
+ * POST /api/v1/medichat/consult
+ * Get a MediChat response based on patient context and the user's request
  */
 const getAIConsultation = async (req, res, next) => {
   try {
@@ -121,7 +121,7 @@ const getAIConsultation = async (req, res, next) => {
     const patientData = await getClinicalDataForUser(req.user, req);
     const clinicalContext = buildClinicalContext(patientData);
 
-    // Get AI consultation
+    // Get MediChat response
     const consultation = await consultWithAI(
       clinicalContext,
       question,
@@ -152,8 +152,8 @@ const getAIConsultation = async (req, res, next) => {
 };
 
 /**
- * POST /api/v1/clinical/consult-stream
- * Streaming version of AI consultation for real-time responses
+ * POST /api/v1/medichat/consult-stream
+ * Streaming version of the MediChat response for real-time delivery
  */
 const getAIConsultationStream = async (req, res, next) => {
   try {
@@ -213,15 +213,15 @@ const getAIConsultationStream = async (req, res, next) => {
 };
 
 /**
- * GET /api/v1/clinical/suggestions
- * Get AI-suggested clinical questions based on patient data
+ * GET /api/v1/medichat/suggestions
+ * Get AI-suggested MediChat prompts based on patient context
  */
 const getSuggestions = async (req, res, next) => {
   try {
     const patientData = await getClinicalDataForUser(req.user, req);
     const clinicalContext = buildClinicalContext(patientData);
 
-    // Generate suggestions
+    // Generate MediChat suggestions
     const suggestionsResult = await generateSuggestions(clinicalContext);
 
     res.status(200).json({
@@ -240,7 +240,7 @@ const getSuggestions = async (req, res, next) => {
 };
 
 /**
- * GET /api/v1/clinical/differential-diagnosis
+ * GET /api/v1/medichat/differential-diagnosis
  * Get differential diagnoses from patient data
  */
 const getDifferentialDiagnosis = async (req, res, next) => {
@@ -260,7 +260,7 @@ const getDifferentialDiagnosis = async (req, res, next) => {
 };
 
 /**
- * GET /api/v1/clinical/medications
+ * GET /api/v1/medichat/medications
  * Get current medications with interaction alerts
  */
 const getMedications = async (req, res, next) => {
@@ -280,7 +280,7 @@ const getMedications = async (req, res, next) => {
 };
 
 /**
- * GET /api/v1/clinical/labs
+ * GET /api/v1/medichat/labs
  * Get lab results with reference ranges and trends
  */
 const getLabResults = async (req, res, next) => {

@@ -11,7 +11,7 @@ const phoneRoutes = require('./modules/phone/phone.routes');
 const authRoutes = require('./routes/authRoutes');
 const symptomRoutes = require('./routes/symptomRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const clinicalRoutes = require('./routes/clinicalRoutes');
+const mediChatRoutes = require('./routes/clinicalRoutes');
 const patientProfileRoutes = require('./routes/patientProfileRoutes');
 const medicalProfessionalApplicationRoutes = require('./routes/medicalProfessionalApplicationRoutes');
 const medicRoutes = require('./routes/medicRoutes');
@@ -106,7 +106,7 @@ const aiUpload = createUpload({
     file.mimetype.startsWith('audio/') ||
     supportedDocumentMimeTypes.has(file.mimetype),
   errorMessage:
-    'Supported MediGuide AI attachments are images, videos, audio files, PDFs, and text-based documents.',
+    'Supported MediChat attachments are images, videos, audio files, PDFs, and text-based documents.',
 });
 
 app.locals.upload = imageUpload;
@@ -169,7 +169,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/symptoms', symptomRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/medic', medicRoutes);
-app.use('/api/v1/clinical', clinicalRoutes);
+app.use('/api/v1/medichat', mediChatRoutes);
+app.use('/api/v1/clinical', mediChatRoutes);
 app.use('/api/v1/patient-profile', patientProfileRoutes);
 app.use('/api/v1/professional-applications', medicalProfessionalApplicationRoutes);
 app.use('/api/v1/phone', phoneRoutes);

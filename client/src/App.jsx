@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -65,13 +65,14 @@ function App() {
           />
           <Route path="/medic" element={<MedicPortal />} />
           <Route
-            path="/clinical"
+            path="/medichat"
             element={
               <PrivateRoute>
                 <ClinicalDashboard />
               </PrivateRoute>
             }
           />
+          <Route path="/clinical" element={<Navigate to="/medichat" replace />} />
           <Route
             path="/professional-application"
             element={

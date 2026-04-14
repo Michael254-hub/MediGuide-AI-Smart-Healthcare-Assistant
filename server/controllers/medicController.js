@@ -17,7 +17,7 @@ const MEDIC_PERMISSIONS = [
   {
     id: 'mediguid_ai',
     title: 'MediGuide AI support',
-    description: 'Use the AI-assisted clinical workspace for follow-up reasoning and case review.',
+    description: 'Use the AI-assisted MediChat workspace for follow-up reasoning and case review.',
   },
   {
     id: 'professional_status',

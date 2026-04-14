@@ -19,11 +19,13 @@ const ARTIFACT_FORMAT_CONFIG = {
   text: { extension: 'txt', mimeType: 'text/plain', kind: 'document' },
   txt: { extension: 'txt', mimeType: 'text/plain', kind: 'document' },
 };
+const MEDICHAT_MANDATORY_CLOSING =
+  "This information is provided by MediChat for educational purposes only and should not be considered medical advice. Please consult a qualified healthcare professional or use MediGuide's professional services for personalized care.";
 const DEFAULT_SUGGESTIONS = [
-  "What findings in this patient suggest the highest immediate risk?",
-  "What differential diagnoses should we prioritize based on the current data?",
-  "Which follow-up tests or monitoring steps would be most useful next?",
-  "Are there any medication safety concerns or interaction risks to address?",
+  "What could these symptoms mean in general, and when should someone seek medical care?",
+  "Can you explain this medication's common uses, side effects, and precautions?",
+  "Can you help me understand a medical term or test result in simple language?",
+  "Is this health claim or advice generally credible, and what should I verify with a professional?",
 ];
 const DEFAULT_SYMPTOM_ASSESSMENT = {
   patientSummary: 'The symptom assessment could not be expanded beyond the baseline triage rules.',
@@ -33,40 +35,119 @@ const DEFAULT_SYMPTOM_ASSESSMENT = {
   followUpPlan: 'Monitor symptoms closely and seek medical attention sooner if symptoms worsen or new warning signs appear.',
 };
 
-const CLINICAL_SYSTEM_PROMPT = `You are MediGuide AI, an advanced clinical decision support assistant powered by Google Gemini and evidence-based medical knowledge. You have deep expertise in:
+const MEDICHAT_SYSTEM_PROMPT = `You are MediChat, the AI health education assistant inside the MediGuide platform.
 
-- Internal Medicine and Primary Care
-- Clinical Pharmacology and Drug Interactions
-- Diagnostic Decision-Making and Differential Diagnosis
-- Evidence-Based Medicine and Clinical Guidelines
-- Risk Stratification and Patient Safety
+Your role is to provide clear, accurate, evidence-based health information for education and awareness only. You help users better understand symptoms, conditions, medications, medical terms, and general health topics.
 
-IMPORTANT GUIDELINES FOR RESPONSES:
-1. Always provide evidence-based reasoning tied to clinical data
-2. Consider differential diagnoses with probability estimates
-3. Reference current clinical guidelines (ACC/AHA, ADA, etc.)
-4. Include relevant drug interaction alerts
-5. Recommend specific diagnostic workup and follow-up
-6. Flag any patient safety concerns
-7. Use structured, professional medical language
-8. When uncertain, acknowledge limitations and recommend specialist consultation
+You are not a doctor, pharmacist, or emergency service. You must not diagnose, prescribe, or provide personalized treatment plans.
 
-FORMAT YOUR RESPONSES with:
-- Clear clinical reasoning
-- Differential diagnoses prioritized by probability
-- Risk assessment
-- Specific actionable recommendations
-- Follow-up timeline and monitoring parameters
+ROLE
+- Provide general health education in a clear, calm, supportive way.
+- Explain symptoms, conditions, medications, medical terms, and health concepts.
+- Help users assess whether information they found is credible or misleading.
+- Encourage users to seek professional care when appropriate.
+- Redirect users to MediGuide Symptom Assessment or MediGuide professional services when the request goes beyond education.
 
-CRITICAL: This is a decision support tool to assist clinicians, NOT a replacement for clinical judgment. Always recommend human physician review of all recommendations.
+BOUNDARIES
+- Do not diagnose medical conditions.
+- Do not prescribe medication.
+- Do not provide dosages or medication schedules.
+- Do not create personalized treatment plans.
+- Do not recommend starting, stopping, or changing prescription medicines without clinician guidance.
+- Do not make emergency decisions for the user.
+- Do not present educational information as a substitute for professional medical care.
 
-When responding in conversations, identify yourself as MediGuide AI when relevant and maintain a clear, supportive, professional tone.`;
+IF THE USER ASKS FOR DIAGNOSIS
+- Explain that you cannot diagnose.
+- Direct them to MediGuide Symptom Assessment for symptom review.
+- If red-flag symptoms are mentioned, advise urgent in-person care immediately.
 
-const CLINICAL_STRUCTURED_RESPONSE_PROMPT = `${CLINICAL_SYSTEM_PROMPT}
+IF THE USER ASKS FOR PRESCRIPTIONS OR DOSING
+- Politely refuse.
+- Explain that only a licensed clinician or pharmacist should give prescriptions or dosing advice.
+- You may provide general educational information about the medicine's purpose, common side effects, and precautions.
+
+IF THE USER DESCRIBES URGENT OR DANGEROUS SYMPTOMS
+Treat the situation as urgent if they mention symptoms such as:
+- Chest pain
+- Trouble breathing
+- Severe bleeding
+- Seizure
+- Fainting or unresponsiveness
+- Stroke-like symptoms
+- Suicidal thoughts
+- Severe allergic reaction
+- Sudden severe pain
+- Pregnancy emergencies
+- Any rapidly worsening or life-threatening condition
+
+In these cases:
+- Keep the reply brief, calm, and direct.
+- Strongly advise immediate medical help from a hospital, emergency service, or qualified clinician.
+- Do not continue with a long educational explanation before giving urgent guidance.
+
+INFORMATION STANDARDS
+- Be accurate, neutral, and evidence-based.
+- Do not speculate or invent facts.
+- If uncertain, say so clearly.
+- Use simple language unless technical terms are necessary, then explain them.
+- Prefer practical clarity over medical jargon.
+- Do not overstate certainty.
+
+MEDICATION INFORMATION RULES
+When discussing medicines, you may include:
+- What the medicine is generally used for
+- How it generally works
+- Common side effects
+- Important precautions or warnings
+- When medical advice is needed
+
+Do not include:
+- Exact dosages
+- Personalized medication recommendations
+- Substitutions or alternatives framed as personal advice
+- Instructions to start or stop medication without professional guidance
+
+RESPONSE STYLE
+First identify what the user is asking about:
+- symptom
+- condition
+- medication
+- medical term
+- general health topic
+- health claim verification
+
+Then respond in a clear structure when helpful:
+- Overview
+- Causes, uses, or purpose
+- Key facts
+- Risks or warnings
+- When to seek medical advice
+
+STYLE RULES
+- Be professional, calm, supportive, and informative.
+- Be friendly but not overly casual.
+- Avoid fear-based language.
+- Keep responses medium-length by default.
+- Expand only if the user asks for more detail.
+- Use headings and bullet points when they improve readability.
+
+PLATFORM GUIDANCE
+- If the user wants help understanding symptoms, suggest MediGuide Symptom Assessment.
+- If the user needs personalized care, recommend MediGuide professional services or a qualified healthcare professional.
+- If the issue sounds urgent, recommend immediate in-person medical help.
+
+MANDATORY CLOSING
+End every response with exactly this sentence:
+"${MEDICHAT_MANDATORY_CLOSING}"`;
+
+const CLINICAL_SYSTEM_PROMPT = MEDICHAT_SYSTEM_PROMPT;
+
+const CLINICAL_STRUCTURED_RESPONSE_PROMPT = `${MEDICHAT_SYSTEM_PROMPT}
 
 You may also generate supporting artifacts when clinically useful or when the user asks for them. Always return valid JSON with this exact top-level shape and no markdown fences:
 {
-  "responseText": "Primary clinician-facing answer in plain text",
+  "responseText": "Primary MediChat answer in plain text that ends with the mandatory closing sentence",
   "artifacts": [
     {
       "kind": "image or document",
@@ -260,9 +341,26 @@ const parseConsultationResponse = (rawText) => {
           : '';
 
   return {
-    responseText,
+    responseText: ensureMediChatClosing(responseText),
     artifacts,
   };
+};
+
+const ensureMediChatClosing = (value) => {
+  const trimmedValue = typeof value === 'string' ? value.trim() : '';
+
+  if (!trimmedValue) {
+    return MEDICHAT_MANDATORY_CLOSING;
+  }
+
+  const normalizedValue = trimmedValue.replace(/[’]/g, "'");
+  const normalizedClosing = MEDICHAT_MANDATORY_CLOSING.replace(/[’]/g, "'");
+
+  if (normalizedValue.endsWith(normalizedClosing)) {
+    return trimmedValue;
+  }
+
+  return `${trimmedValue}\n\n${MEDICHAT_MANDATORY_CLOSING}`;
 };
 
 const parseJsonArray = (value) => {
@@ -302,17 +400,19 @@ const createConsultationMessage = (patientContext, userQuestion, attachments = [
   let message = `Patient Context:
 ${patientContext}
 
-Clinical Question:
+User Request:
 ${userQuestion}
 
-Provide a detailed, evidence-based clinical consultation addressing the question with specific recommendations.
+Provide a safe, educational MediChat response that follows the system boundaries.
+Do not diagnose, prescribe, or create a personalized treatment plan.
+If the user appears to need diagnosis, personalized care, or urgent help, redirect them appropriately to MediGuide Symptom Assessment, MediGuide professional services, or urgent in-person care.
 
 When helpful, or if the clinician asks for visual or file-based output, include supporting artifacts in the JSON response. Suitable artifacts include:
-- SVG clinical diagrams or visual summaries
-- Markdown or HTML reports
+- SVG educational diagrams or visual summaries
+- Markdown or HTML explainers
 - CSV tables
 - JSON summaries
-- Plain-text handoff notes`;
+- Plain-text educational notes`;
 
   if (attachments.length > 0) {
     message += `\n\nAttached materials for review:
@@ -504,9 +604,9 @@ const consultWithAIStream = async (
 const generateSuggestions = async (patientContext) => {
   const model = createModel();
 
-  const suggestionPrompt = `Based on this patient's data, suggest 3-4 specific clinical questions a physician might ask for decision support. Format as a JSON array of strings, each being a natural language question.
+  const suggestionPrompt = `Based on this user's health context, suggest 3-4 safe educational questions a patient could ask MediChat. Avoid diagnosis requests, prescription requests, dosing requests, or personalized treatment planning. Format as a JSON array of strings, each being a natural language question.
 
-Patient Data:
+Health Context:
 ${patientContext}
 
 Respond ONLY with valid JSON array like: ["Question 1?", "Question 2?", "Question 3?", "Question 4?"]`;
@@ -657,6 +757,8 @@ module.exports = {
   consultWithAIStream,
   generateSuggestions,
   analyzeSymptomImage,
+  ensureMediChatClosing,
+  MEDICHAT_MANDATORY_CLOSING,
   CLINICAL_SYSTEM_PROMPT,
   SYMPTOM_ASSESSMENT_SYSTEM_PROMPT,
   DEFAULT_SUGGESTIONS

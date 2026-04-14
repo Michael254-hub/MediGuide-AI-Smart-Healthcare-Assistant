@@ -86,11 +86,11 @@ export const medicAPI = {
   getWorkspace: () => api.get('/medic/workspace'),
 };
 
-// Clinical API methods
-export const clinicalAPI = {
-  getPatientData: () => api.get('/clinical/patient-data'),
-  getSuggestions: () => api.get('/clinical/suggestions'),
-  sendMediGuideMessage: ({ question, conversationHistory = [], attachments = [] }) => {
+// MediChat API methods
+export const mediChatAPI = {
+  getPatientData: () => api.get('/medichat/patient-data'),
+  getSuggestions: () => api.get('/medichat/suggestions'),
+  sendMessage: ({ question, conversationHistory = [], attachments = [] }) => {
     if (attachments.length > 0) {
       const formData = new FormData();
       formData.append('question', question || '');
@@ -99,17 +99,20 @@ export const clinicalAPI = {
         formData.append('attachments', attachment);
       });
 
-      return api.post('/clinical/consult', formData);
+      return api.post('/medichat/consult', formData);
     }
 
-    return api.post('/clinical/consult', {
+    return api.post('/medichat/consult', {
       question,
       conversationHistory,
     });
   },
-  getRiskAssessment: () => api.get('/clinical/risk-assessment'),
-  getTriageHistory: () => api.get('/clinical/triage-history'),
-  addClinicalNotes: (data) => api.post('/clinical/notes', data),
+};
+
+// Backward-compatible alias while the rest of the codebase migrates.
+export const clinicalAPI = {
+  ...mediChatAPI,
+  sendMediGuideMessage: mediChatAPI.sendMessage,
 };
 
 // Admin API methods

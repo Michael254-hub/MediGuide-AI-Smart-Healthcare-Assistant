@@ -133,7 +133,7 @@ export default function MedicDashboard() {
             Hidden Medic Access
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            MediChat Clinical Workspace
+            MediChat Professional Workspace
           </h1>
           <p className="mt-3 max-w-3xl text-base text-slate-300 sm:text-lg">
             Review priority patient cases, monitor triage output, and use your approved
@@ -147,7 +147,7 @@ export default function MedicDashboard() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Live clinical workspace
+                Live MediChat workspace
               </p>
               <p className="mt-2 text-sm text-slate-600">
                 Case activity refreshes automatically every 15 seconds and whenever this tab regains focus.
@@ -218,7 +218,7 @@ export default function MedicDashboard() {
               </h2>
             </div>
             <Link
-              to="/clinical"
+              to="/medichat"
               className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <Brain className="h-4 w-4" />

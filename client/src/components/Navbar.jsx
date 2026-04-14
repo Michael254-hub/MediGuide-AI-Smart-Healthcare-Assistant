@@ -166,9 +166,9 @@ const Navbar = () => {
             icon: LayoutDashboard,
           },
           {
-            to: "/clinical",
+            to: "/medichat",
             label: "MediChat",
-            description: "Open the clinical workspace and multimodal chat.",
+            description: "Open the MediChat workspace and multimodal chat.",
             icon: Brain,
           },
           ...(user?.role !== "admin" && user?.role !== "medical_professional"
@@ -239,7 +239,7 @@ const Navbar = () => {
     ? verified
       ? [
           { to: "/dashboard", label: "Assessment", description: "Assessment history and follow-up details." },
-          { to: "/clinical", label: "MediChat", description: "Open the MediChat workspace and conversation view." },
+          { to: "/medichat", label: "MediChat", description: "Open the MediChat workspace and conversation view." },
           ...(user?.role !== "admin" && user?.role !== "medical_professional"
             ? [
                 {

@@ -1,5 +1,5 @@
 /**
- * MediGuide AI Routes
+ * MediChat Routes
  */
 
 const express = require('express');
@@ -18,7 +18,7 @@ const {
 // All routes require authentication
 router.use(protect);
 
-const handleMediGuideAttachments = (req, res, next) => {
+const handleMediChatAttachments = (req, res, next) => {
   if (!req.is('multipart/form-data')) {
     return next();
   }
@@ -32,15 +32,15 @@ const handleMediGuideAttachments = (req, res, next) => {
   });
 };
 
-// Clinical data endpoints
+// MediChat context endpoints
 router.get('/patient-data', getPatientData);
 router.get('/differential-diagnosis', getDifferentialDiagnosis);
 router.get('/medications', getMedications);
 router.get('/labs', getLabResults);
 
-// AI consultation endpoints
+// MediChat conversation endpoints
 router.get('/suggestions', getSuggestions);
-router.post('/consult', handleMediGuideAttachments, getAIConsultation);
-router.post('/consult-stream', handleMediGuideAttachments, getAIConsultationStream);
+router.post('/consult', handleMediChatAttachments, getAIConsultation);
+router.post('/consult-stream', handleMediChatAttachments, getAIConsultationStream);
 
 module.exports = router;

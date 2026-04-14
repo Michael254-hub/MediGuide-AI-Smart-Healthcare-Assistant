@@ -29,7 +29,7 @@ import {
   Zap,
   Droplets,
 } from "lucide-react";
-import { clinicalAPI } from "../services/api";
+import { mediChatAPI } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 
 const MEDIGUIDE_STORAGE_PREFIX = "mediguide-ai-conversations:";
@@ -293,8 +293,8 @@ const ClinicalDashboard = () => {
       try {
         setIsLoading(true);
         const [patientRes, suggestionsRes] = await Promise.allSettled([
-          clinicalAPI.getPatientData(),
-          clinicalAPI.getSuggestions(),
+          mediChatAPI.getPatientData(),
+          mediChatAPI.getSuggestions(),
         ]);
 
         if (patientRes.status !== "fulfilled") {
@@ -525,7 +525,7 @@ const ClinicalDashboard = () => {
     setIsConsulting(true);
 
     try {
-      const response = await clinicalAPI.sendMediGuideMessage({
+      const response = await mediChatAPI.sendMessage({
         question: trimmedMessage,
         conversationHistory,
         attachments: pendingAttachments.map((attachment) => attachment.file),
@@ -833,7 +833,7 @@ const MediGuideChatTab = ({
                 {activeConversation?.title || "MediChat"}
               </h2>
               <p className="text-xs text-slate-500 sm:text-sm">
-                Text, images, videos, audio, PDFs, and text documents in one clinical thread
+                Text, images, videos, audio, PDFs, and text documents in one health education thread
               </p>
             </div>
           </div>
@@ -913,11 +913,12 @@ const MediGuideChatTab = ({
                   <Brain className="h-8 w-8" />
                 </div>
                 <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                  Start a richer MediChat conversation
+                  Start a MediChat health education conversation
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Ask by text alone, or attach images, audio clips, short videos,
-                  PDFs, and text documents for Gemini to review in the same thread.
+                  Ask about symptoms, conditions, medicines, medical terms, or
+                  health claims, or attach images, audio clips, short videos,
+                  PDFs, and text documents for review in the same thread.
                 </p>
               </div>
             </div>
@@ -970,15 +971,18 @@ const MediGuideChatTab = ({
                 </span>
               </div>
               <p className="mb-4 text-xs text-slate-500">
-                MediChat can review these inputs and respond with text, SVG visuals,
-                and downloadable reports or data files.
+                MediChat provides educational health information and can respond
+                with text, SVG visuals, and downloadable explainers or data files.
+              </p>
+              <p className="mb-4 text-xs text-amber-700">
+                MediChat does not diagnose, prescribe, or replace a healthcare professional.
               </p>
 
               <textarea
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
-                placeholder="Message MediChat about symptoms, differential diagnosis, treatment options, or ask it to review attachments, create a visual summary, or generate a document..."
+                placeholder="Ask MediChat about symptoms, conditions, medications, medical terms, or health information you want explained or verified..."
                 disabled={isConsulting}
                 rows={4}
                 className="min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:min-h-[140px]"
