@@ -49,8 +49,8 @@ const RiskAlert = ({ level, recommendation, flaggedEmergency }) => {
         </div>
         <div>
           <h3 className="text-xl font-bold mb-2 tracking-tight">{config.title}</h3>
-          <p className="text-base leading-relaxed font-medium">{recommendation}</p>
-          {flaggedEmergency && (
+          <p className="text-base leading-relaxed font-medium whitespace-pre-line">{recommendation}</p>
+        {flaggedEmergency && (
             <div className="mt-4 p-4 bg-red-100 rounded-lg border border-red-200 flex items-center gap-3">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

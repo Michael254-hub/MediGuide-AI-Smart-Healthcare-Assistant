@@ -45,6 +45,7 @@ CREATE TABLE symptom_submissions (
   symptoms TEXT NOT NULL,
   duration VARCHAR(255) NOT NULL,
   severity VARCHAR(20) NOT NULL CHECK (severity IN ('mild', 'moderate', 'severe')),
+  follow_up_responses JSONB NOT NULL DEFAULT '[]'::jsonb,
   submitted_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY(user_id) REFERENCES users(id)
 );

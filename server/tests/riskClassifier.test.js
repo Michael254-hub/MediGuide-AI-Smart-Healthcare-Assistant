@@ -57,4 +57,15 @@ describe('Triage Risk Classifier Engine', () => {
     expect(result.flaggedEmergency).toBe(true);
   });
 
+  it('should normalize the current duration labels used by the symptom form', () => {
+    const result = classifyRisk('My throat is a bit scratchy', 'More than 2 weeks', 'mild');
+    expect(result.level).toBe('MEDIUM');
+  });
+
+  it('should normalize severe string severity values from the symptom form', () => {
+    const result = classifyRisk('I have a mild rash', '1-3 days', 'severe');
+    expect(result.level).toBe('EMERGENCY');
+    expect(result.flaggedEmergency).toBe(true);
+  });
+
 });

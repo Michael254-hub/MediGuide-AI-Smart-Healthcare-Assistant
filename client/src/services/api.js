@@ -65,7 +65,8 @@ export const authAPI = {
 
 // Symptom API methods
 export const symptomAPI = {
-  submitSymptoms: (data) => api.post('/symptoms', data),
+  getFollowUpQuestions: (data) => api.post('/symptoms/follow-up-questions', data),
+  submitSymptoms: (data, config = {}) => api.post('/symptoms', data, config),
   getSymptomHistory: () => api.get('/symptoms/history'),
   getSingleSymptom: (id) => api.get(`/symptoms/${id}`),
 };

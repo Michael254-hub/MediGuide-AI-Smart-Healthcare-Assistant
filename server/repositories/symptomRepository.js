@@ -91,7 +91,7 @@ class SymptomRepository {
 
     const { data, error } = await supabase
       .from('symptom_submissions')
-      .select('id, user_id, symptoms, duration, severity, submitted_at')
+      .select('*')
       .in('id', uniqueIds);
 
     if (error) throw error;
