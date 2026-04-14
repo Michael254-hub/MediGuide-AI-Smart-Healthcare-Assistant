@@ -111,11 +111,17 @@ class SymptomRepository {
     return data;
   }
 
-  async findAllLogsWithDetails() {
-    const { data: logs, error } = await supabase
+  async findAllLogsWithDetails(limit = null) {
+    let query = supabase
       .from('triage_logs')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (Number.isInteger(limit) && limit > 0) {
+      query = query.limit(limit);
+    }
+
+    const { data: logs, error } = await query;
 
     if (error) throw error;
 
@@ -141,6 +147,10 @@ class SymptomRepository {
           : null,
       };
     });
+  }
+
+  async findRecentLogsWithDetails(limit = 10) {
+    return this.findAllLogsWithDetails(limit);
   }
 }
 

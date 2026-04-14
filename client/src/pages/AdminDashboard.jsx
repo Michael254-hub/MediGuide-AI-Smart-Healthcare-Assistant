@@ -26,6 +26,60 @@ const roleLabels = {
   physiotherapist: 'Physiotherapist',
 };
 
+const truncateText = (value, maxLength = 64) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const normalizedValue = value.replace(/\s+/g, ' ').trim();
+
+  if (!normalizedValue) {
+    return '';
+  }
+
+  return normalizedValue.length > maxLength
+    ? `${normalizedValue.slice(0, maxLength - 1)}...`
+    : normalizedValue;
+};
+
+const normalizeSubmissionRecord = (record = {}) => ({
+  id: record.id || record._id || `${record.userEmail || 'submission'}-${record.submittedAt || record.assessedAt || Date.now()}`,
+  userName:
+    record.userName ||
+    record.submissionId?.userId?.name ||
+    record.submission_id?.user_id?.name ||
+    'Unknown User',
+  userEmail:
+    record.userEmail ||
+    record.submissionId?.userId?.email ||
+    record.submission_id?.user_id?.email ||
+    '',
+  assessmentTitle:
+    record.assessmentTitle ||
+    truncateText(
+      record.submissionId?.title ||
+        record.submission_id?.title ||
+        record.submissionId?.symptoms ||
+        record.submission_id?.symptoms ||
+        'Symptom assessment'
+    ),
+  symptoms:
+    record.symptoms ||
+    record.submissionId?.symptoms ||
+    record.submission_id?.symptoms ||
+    '',
+  riskLevel: record.riskLevel || record.risk_level || 'UNKNOWN',
+  submittedAt:
+    record.submittedAt ||
+    record.submissionId?.submittedAt ||
+    record.submissionId?.submitted_at ||
+    record.submission_id?.submitted_at ||
+    record.createdAt ||
+    record.created_at ||
+    null,
+  assessedAt: record.assessedAt || record.createdAt || record.created_at || null,
+});
+
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -59,7 +113,9 @@ const AdminDashboard = () => {
       }
 
       if (submissionsRes.status === 'fulfilled') {
-        setSubmissions(submissionsRes.value.data.data);
+        setSubmissions(submissionsRes.value.data.data || []);
+      } else if (statsRes.status === 'fulfilled') {
+        setSubmissions(statsRes.value.data.data?.recentSubmissions || []);
       }
 
       if (professionalAppsRes.status === 'fulfilled') {
@@ -199,6 +255,12 @@ const AdminDashboard = () => {
   const filteredProfessionalApplications = professionalApplications.filter((application) =>
     applicationStatusFilter === 'all' ? true : application.status === applicationStatusFilter
   );
+  const recentSubmissions = useMemo(
+    () => submissions.map((record) => normalizeSubmissionRecord(record)),
+    [submissions]
+  );
+  const latestSubmission = recentSubmissions[0]
+    || (stats?.recentSubmissions?.[0] ? normalizeSubmissionRecord(stats.recentSubmissions[0]) : null);
 
   const syncLabel = useMemo(() => {
     if (!lastUpdatedAt) {
@@ -554,38 +616,86 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      <div className="mb-8 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+              Most recent assessment
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-med-dark">
+              {latestSubmission?.assessmentTitle || 'No recent submissions yet'}
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              This feed refreshes automatically whenever new assessment submissions are detected.
+            </p>
+          </div>
+          {latestSubmission && (
+            <span
+              className={`inline-flex w-max items-center rounded-full border px-3 py-1 text-xs font-bold ${
+                getRiskColorInfo(latestSubmission.riskLevel).bg
+              } ${getRiskColorInfo(latestSubmission.riskLevel).text} ${getRiskColorInfo(latestSubmission.riskLevel).border}`}
+            >
+              {latestSubmission.riskLevel}
+            </span>
+          )}
+        </div>
+
+        {latestSubmission ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <InfoTile label="User name" value={latestSubmission.userName} />
+            <InfoTile label="Email" value={latestSubmission.userEmail || 'Not available'} />
+            <InfoTile label="Assessment title" value={latestSubmission.assessmentTitle} />
+            <InfoTile label="Submitted" value={formatDate(latestSubmission.submittedAt)} />
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+            No recent assessment submissions are available yet.
+          </div>
+        )}
+      </div>
+
       <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-8 py-6">
-          <h2 className="text-xl font-bold text-med-dark">Recent Submissions Log</h2>
+          <div>
+            <h2 className="text-xl font-bold text-med-dark">Recent Submissions Log</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Latest user assessments, ordered automatically from newest to oldest.
+            </p>
+          </div>
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-500">
-            {submissions.length} Total Records
+            {recentSubmissions.length} Recent Records
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 bg-white text-xs uppercase tracking-wider text-slate-500">
-                <th className="px-8 py-5 font-bold">Patient</th>
+                <th className="px-8 py-5 font-bold">User</th>
+                <th className="px-8 py-5 font-bold">Email</th>
+                <th className="px-8 py-5 font-bold">Assessment Title</th>
                 <th className="px-8 py-5 font-bold">Submitted</th>
                 <th className="px-8 py-5 font-bold">Risk Level</th>
                 <th className="px-8 py-5 font-bold">Symptoms Reported</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50/80">
-              {submissions.map((log) => {
+              {recentSubmissions.map((log) => {
                 const config = getRiskColorInfo(log.riskLevel);
                 return (
-                  <tr key={log._id} className="transition-colors hover:bg-slate-50/50">
+                  <tr key={log.id} className="transition-colors hover:bg-slate-50/50">
                     <td className="px-8 py-5">
-                      <div className="font-bold text-med-dark">
-                        {log.submissionId?.userId?.name || 'Unknown User'}
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {log.submissionId?.userId?.email}
-                      </div>
+                      <div className="font-bold text-med-dark">{log.userName}</div>
+                    </td>
+                    <td className="px-8 py-5 text-sm text-slate-500">
+                      {log.userEmail || 'Not available'}
+                    </td>
+                    <td className="px-8 py-5">
+                      <p className="max-w-xs text-sm font-semibold text-slate-700">
+                        {log.assessmentTitle}
+                      </p>
                     </td>
                     <td className="px-8 py-5 text-sm font-medium text-slate-600">
-                      {formatDate(log.createdAt)}
+                      {formatDate(log.submittedAt)}
                     </td>
                     <td className="px-8 py-5">
                       <span
@@ -597,9 +707,9 @@ const AdminDashboard = () => {
                     <td className="px-8 py-5">
                       <p
                         className="max-w-xs truncate text-sm text-slate-700"
-                        title={log.submissionId?.symptoms}
+                        title={log.symptoms}
                       >
-                        {log.submissionId?.symptoms}
+                        {log.symptoms || 'Not available'}
                       </p>
                     </td>
                   </tr>
@@ -607,7 +717,7 @@ const AdminDashboard = () => {
               })}
             </tbody>
           </table>
-          {submissions.length === 0 && (
+          {recentSubmissions.length === 0 && (
             <div className="p-12 text-center text-slate-500">No submissions found.</div>
           )}
         </div>
