@@ -1,25 +1,41 @@
 @import "tailwindcss";
 
 @theme {
-  --color-med-primary: #0284c7; /* Sky 600 */
-  --color-med-secondary: #0ea5e9; /* Sky 500 */
-  --color-med-accent: #38bdf8; /* Sky 400 */
-  --color-med-bg: #f0f9ff; /* Sky 50 */
-  --color-med-white: #ffffff;
-  --color-med-dark: #0f172a; /* Slate 900 */
-  --color-med-text: #334155; /* Slate 700 */
-  --color-med-muted: #64748b; /* Slate 500 */
-  --color-risk-low: #22c55e; /* Green 500 */
-  --color-risk-medium: #eab308; /* Yellow 500 */
-  --color-risk-high: #f97316; /* Orange 500 */
-  --color-risk-emergency: #ef4444; /* Red 500 */
-  
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Brand palette — teal-forward, calm, clinical. */
+  --color-brand-primary: #0f766e; /* Teal 700 */
+  --color-brand-secondary: #14b8a6; /* Teal 500 */
+  --color-brand-accent: #06b6d4; /* Cyan 500 */
+  --color-brand-success: #10b981;
+  --color-brand-warning: #f59e0b;
+  --color-brand-danger: #ef4444;
+  --color-brand-bg: #f8fafc;
+  --color-brand-card: #ffffff;
+  --color-brand-text: #0f172a;
+  --color-brand-text-muted: #64748b;
+  --color-brand-border: #e2e8f0;
+  --color-brand-focus: #2563eb;
+
+  /*
+   * Clinical risk-triage semantics, kept as their own namespace deliberately:
+   * a RiskAlert's EMERGENCY/HIGH/MEDIUM/LOW communicates patient risk, which is
+   * a different axis from a generic UI success/warning/danger state. Values are
+   * tuned to sit harmoniously with the brand palette above.
+   */
+  --color-risk-low: #10b981;
+  --color-risk-medium: #f59e0b;
+  --color-risk-high: #f97316;
+  --color-risk-emergency: #ef4444;
+
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Manrope", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+
+  --radius-brand-sm: 16px;
+  --radius-brand-lg: 24px;
 }
 
 :root {
-  background-color: var(--color-med-bg);
-  color: var(--color-med-text);
+  background-color: var(--color-brand-bg);
+  color: var(--color-brand-text);
   font-family: var(--font-sans);
 }
 
@@ -29,6 +45,7 @@
 
 html {
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -47,16 +64,23 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: var(--color-med-dark);
+  color: var(--color-brand-text);
+  font-family: var(--font-display);
 }
 
+::selection {
+  background-color: color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
+}
+
+/* Subtle glass — a hint of frosted depth, never a heavy blur. */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
 }
 
+/* CSS fallback tier — Framer Motion is the primary animation mechanism now. */
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
